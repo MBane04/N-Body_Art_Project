@@ -1,0 +1,54 @@
+N-Body Painter? Click/hold mouse to draw, Can place bodies that do different things? then be able to trace and capture?
+Be able to draw lines(bodies stacked on top of eachother)? Rows of bodies lined up?
+
+
+Each ball has its own attributes in a struct (Solid, Color, Movement, Position, velocity)
+
+
+Questions...
+Memory issues with no known # of balls?
+    Sol: Dynamically allocated mem?
+
+How to add click & drag fucntions
+    Sol: Look @ gl or ask chat
+
+Mason:
+1.) Figure out how to place n number of balls in the program
+2.)Create the struct storing information about each ball
+
+Later
+    Write struct information to a file so we can rerun with the same initial conditions
+
+
+Leah:
+1.) Figure out structure attributes for each ball   
+    Current:
+        bool isSolid
+        float4 Color
+        int movement //preconfigured movement pattern
+        float4 pos
+        float4 vel
+
+Trevor:
+    1.) Callback functions:
+        If not messing with balls 
+            Scroll: Zoom in/out
+            Click and drag: Moves simulation
+            p: pause
+            q: quit
+            t: trace  
+            v:Orthognal/frustrum view
+        Update Terminal
+    2.) Create toggles
+        defaultView
+        draw
+
+Shelby:
+    See what we need to do to paint Van Gogh's Starry Night
+        Structures to color in
+        If any properties of balls need to be added
+        It can be super rough, as long as it makes a cool enough painting
+
+        
+
+
