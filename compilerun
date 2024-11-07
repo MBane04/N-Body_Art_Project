@@ -1,3 +1,11 @@
-nvcc nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL	
-chmod 755 compilerun
-./nBodyArt
+#Compiles and runs the current file
+
+#chmod 755 compilerun
+
+cd src
+
+nvcc nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL
+
+mv nBodyArt ../Executables
+
+./../Executables/nBodyArt

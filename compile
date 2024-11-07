@@ -3,4 +3,8 @@
 #if you get a permission denied error, type this command in the terminal:
 #chmod 755 compile
 
-nvcc nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL		
+cd src
+
+nvcc nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL
+
+mv nBodyArt ../Executables
