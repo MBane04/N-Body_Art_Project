@@ -37,10 +37,10 @@ int PrintRate;
 
 // Other Globals
 int Pause;
-float *BodyPositionX, *BodyPositionY, *BodyPositionZ;
-float *BodyVelocityX, *BodyVelocityY, *BodyVelocityZ;
-float *BodyForceX, *BodyForceY, *BodyForceZ;
-float *BodyColorX, *BodyColorY, *BodyColorZ;
+//float *BodyPositionX, *BodyPositionY, *BodyPositionZ;
+//float *BodyVelocityX, *BodyVelocityY, *BodyVelocityZ;
+//float *BodyForceX, *BodyForceY, *BodyForceZ;
+//float *BodyColorX, *BodyColorY, *BodyColorZ;
 int DrawTimer, PrintTimer;
 float RunTime;
 int* Buffer;
@@ -90,10 +90,11 @@ typedef struct
 {
 	int id;
 	bool isSolid;
-	float4 Color;
+	float4 color;
 	int movement; //preconfigured movement pattern
 	float4 pos;
 	float4 vel;
+	float4 force;
 } Body;
 
 Body* bodies = NULL;
@@ -102,18 +103,20 @@ int numBodies = 0;
 void addBody(int index, double x, double y, double z, double vx, double vy, double vz, double mass) 
 {
     // Reallocate memory to accommodate the new body
-    bodies = (Body*)realloc(bodies, (numBodies + 1) * sizeof(Body));
-    if (bodies == NULL) {
+    Body* temp = (Body*)realloc(bodies, (numBodies + 1) * sizeof(Body));
+    if (temp == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
+    bodies = temp;
+
     // Initialize the new body
 	bodies[numBodies].id = index;
 	bodies[numBodies].isSolid = true;
-	bodies[numBodies].Color.x = 1.0;
-	bodies[numBodies].Color.y = 1.0;
-	bodies[numBodies].Color.z = 1.0;
-	bodies[numBodies].Color.w = 1.0;
+	bodies[numBodies].color.x = 1.0;
+	bodies[numBodies].color.y = 1.0;
+	bodies[numBodies].color.z = 1.0;
+	bodies[numBodies].color.w = 1.0;
 	bodies[numBodies].movement = 0;
 	bodies[numBodies].pos.x = x;
 	bodies[numBodies].pos.y = y;
@@ -126,6 +129,9 @@ void addBody(int index, double x, double y, double z, double vx, double vy, doub
 
     // Increment the number of bodies
     numBodies++;
+
+	//for debugging
+	printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", index, x, y, z, vx, vy, vz);
 }
 
 void freeBodies() 
@@ -408,21 +414,8 @@ void setSimulationParameters()
 
 void allocateMemory()
 {
-	BodyPositionX = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyPositionY = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyPositionZ = (float*)malloc(NumberOfBodies*sizeof(float));
-	
-	BodyVelocityX = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyVelocityY = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyVelocityZ = (float*)malloc(NumberOfBodies*sizeof(float));
-	
-	BodyForceX    = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyForceY    = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyForceZ    = (float*)malloc(NumberOfBodies*sizeof(float));
-	
-	BodyColorX    = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyColorY    = (float*)malloc(NumberOfBodies*sizeof(float));
-	BodyColorZ    = (float*)malloc(NumberOfBodies*sizeof(float));
+	//allocate memory for the bodies, now stored in the bodies array of structs
+	bodies = (Body*)malloc(NumberOfBodies * sizeof(Body));
 }
 
 void setInitailConditions()
@@ -438,16 +431,16 @@ void setInitailConditions()
 		while(test == 0)
 		{
 			// Get random number between -1 at 1.
-			BodyPositionX[i] = ((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
-			BodyPositionY[i] = ((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
-			BodyPositionZ[i] = 0.0;  //((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
+			bodies[i].pos.x = ((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
+			bodies[i].pos.y= ((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
+			bodies[i].pos.z= 0.0;  //((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
 			test = 1;
 			
 			for(int j = 0; j < i; j++)
 			{
-				dx = BodyPositionX[i] - BodyPositionX[j];
-				dy = BodyPositionY[i] - BodyPositionY[j];
-				dz = BodyPositionZ[i] - BodyPositionZ[j];
+				dx = bodies[i].pos.x - bodies[j].pos.x;
+				dy = bodies[i].pos.y - bodies[j].pos.y;
+				dz = bodies[i].pos.z - bodies[j].pos.z;
 				d2  = dx*dx + dy*dy + dz*dz;
 				d = sqrt(d2);
 				if(d < DiameterOfBody)
@@ -459,13 +452,13 @@ void setInitailConditions()
 			
 			if(test == 1)
 			{
-				BodyVelocityX[i] = 0.0; //VelocityMax*((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
-				BodyVelocityY[i] = 0.0; //VelocityMax*((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
-				BodyVelocityZ[i] = 0.0;  //VelocityMax*((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
+				bodies[i].vel.x = 0.0; //VelocityMax*((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
+				bodies[i].vel.y = 0.0; //VelocityMax*((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
+				bodies[i].vel.z = 0.0;  //VelocityMax*((float)rand()/(float)RAND_MAX)*2.0 - 1.0;
 				
-				BodyColorX[i] = ((float)rand()/(float)RAND_MAX);
-				BodyColorY[i] = ((float)rand()/(float)RAND_MAX);
-				BodyColorZ[i] = ((float)rand()/(float)RAND_MAX);
+				bodies[i].color.x = ((float)rand()/(float)RAND_MAX);
+				bodies[i].color.y = ((float)rand()/(float)RAND_MAX);
+				bodies[i].color.z = ((float)rand()/(float)RAND_MAX);
 			}
 		}
 	}
@@ -483,9 +476,9 @@ float4 centerOfMass()
 	
 	for(int i = 0; i < NumberOfBodies; i++)
 	{
-    		centerOfMass.x += BodyPositionX[i]*MassOfBody;
-		centerOfMass.y += BodyPositionY[i]*MassOfBody;
-		centerOfMass.z += BodyPositionZ[i]*MassOfBody;
+    	centerOfMass.x += bodies[i].pos.x*MassOfBody;
+		centerOfMass.y += bodies[i].pos.y*MassOfBody;
+		centerOfMass.z += bodies[i].pos.z*MassOfBody;
 		totalMass += MassOfBody;
 	}
 	centerOfMass.x /= totalMass;
@@ -507,9 +500,9 @@ float4 linearVelocity()
 	
 	for(int i = 0; i < NumberOfBodies; i++)
 	{
-    		linearVelocity.x += BodyVelocityX[i]*MassOfBody;
-		linearVelocity.y += BodyVelocityY[i]*MassOfBody;
-		linearVelocity.z += BodyVelocityZ[i]*MassOfBody;
+    	linearVelocity.x += bodies[i].vel.x*MassOfBody;
+		linearVelocity.y += bodies[i].vel.y*MassOfBody;
+		linearVelocity.z += bodies[i].vel.z*MassOfBody;
 		totalMass += MassOfBody;
 	}
 	linearVelocity.x /= totalMass;
@@ -527,13 +520,13 @@ void zeroOutSystem()
 		
 	for(int i = 0; i < NumberOfBodies; i++)
 	{
-		BodyPositionX[i] -= pos.x;
-		BodyPositionY[i] -= pos.y;
-		BodyPositionZ[i] -= pos.z;
+		bodies[i].pos.x -= pos.x;
+		bodies[i].pos.y -= pos.y;
+		bodies[i].pos.z -= pos.z;
 		
-		BodyVelocityX[i] -= vel.x;
-		BodyVelocityY[i] -= vel.y;
-		BodyVelocityZ[i] -= vel.z;
+		bodies[i].vel.x -= vel.x;
+		bodies[i].vel.y -= vel.y;
+		bodies[i].vel.z -= vel.z;
 	}
 }
 
@@ -547,9 +540,9 @@ void drawPicture()
 		
 	for(int i = 0; i < NumberOfBodies; i++)
 	{
-		glColor3d(BodyColorX[i], BodyColorY[i], BodyColorZ[i]);
+		glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
 		glPushMatrix();
-			glTranslatef(BodyPositionX[i], BodyPositionY[i], BodyPositionZ[i]);
+			glTranslatef(bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z);
 			glutSolidSphere(DiameterOfBody/2.0, 20, 20);
 		glPopMatrix();
 	}
@@ -562,58 +555,59 @@ void drawPicture()
 	}
 }
 
-void getForces(float *posX, float *posY,float *posZ, float *velX, float *velY, float *velZ, float *forceX, float *forceY, float *forceZ, float mass, float G, float H, float Epsilon, float drag, float dt, int n)
+void getForces(Body* bodies, float mass, float G, float H, float Epsilon, float drag, float dt, int n)
 {
-	float dx, dy, dz, d2, d;
-	float forceMag;
-    
-	for(int i = 0; i < n; i++)
-	{
-		forceX[i] = 0.0;
-		forceY[i] = 0.0;
-		forceZ[i] = 0.0;
-	}
-	
-	// Getting force
-	for(int i = 0; i < n; i++)
-	{   
-		for(int j = i + 1; j < n; j++)
-		{
-			dx = posX[j] - posX[i];
-			dy = posY[j] - posY[i];
-			dz = posZ[j] - posZ[i];
-		 	d2 = dx*dx + dy*dy + dz*dz + Epsilon;
-		 	d = sqrt(d2);
-			forceMag  = (G*mass*mass)/(d2) - (H*mass*mass)/(d2*d2);
-			forceX[i] += forceMag*dx/d;
-			forceY[i] += forceMag*dy/d;
-			forceZ[i] += forceMag*dz/d;
-			forceX[j] -= forceMag*dx/d;
-			forceY[j] -= forceMag*dy/d;
-			forceZ[j] -= forceMag*dz/d;
-		}
-    	}
-    
-    	// Updating positions
-	for(int i = 0; i < n; i++)
-	{
-		velX[i] += ((forceX[i] - drag*velX[i])/mass)*dt;
-		velY[i] += ((forceY[i] - drag*velY[i])/mass)*dt;
-		velZ[i] += ((forceZ[i] - drag*velZ[i])/mass)*dt;
-		
-		posX[i] += velX[i]*dt;
-		posY[i] += velY[i]*dt;
-		posZ[i] += velZ[i]*dt;
-	}
+    float dx, dy, dz, d2, d;
+    float forceMag;
+
+    // Initialize forces to zero
+    for(int i = 0; i < n; i++)
+    {
+        bodies[i].force.x = 0.0;
+        bodies[i].force.y = 0.0;
+        bodies[i].force.z = 0.0;
+    }
+
+    // Calculate forces
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = i + 1; j < n; j++)
+        {
+            dx = bodies[j].pos.x - bodies[i].pos.x;
+            dy = bodies[j].pos.y - bodies[i].pos.y;
+            dz = bodies[j].pos.z - bodies[i].pos.z;
+            d2 = dx*dx + dy*dy + dz*dz + Epsilon;
+            d = sqrt(d2);
+            forceMag = (G*mass*mass)/(d2) - (H*mass*mass)/(d2*d2);
+            bodies[i].force.x += forceMag * dx / d;
+            bodies[i].force.y += forceMag * dy / d;
+            bodies[i].force.z += forceMag * dz / d;
+            bodies[j].force.x -= forceMag * dx / d;
+            bodies[j].force.y -= forceMag * dy / d;
+            bodies[j].force.z -= forceMag * dz / d;
+        }
+    }
+
+    // Update positions and velocities
+    for(int i = 0; i < n; i++)
+    {
+        bodies[i].vel.x += ((bodies[i].force.x - drag * bodies[i].vel.x) / mass) * dt;
+        bodies[i].vel.y += ((bodies[i].force.y - drag * bodies[i].vel.y) / mass) * dt;
+        bodies[i].vel.z += ((bodies[i].force.z - drag * bodies[i].vel.z) / mass) * dt;
+
+        bodies[i].pos.x += bodies[i].vel.x * dt;
+        bodies[i].pos.y += bodies[i].vel.y * dt;
+        bodies[i].pos.z += bodies[i].vel.z * dt;
+    }
 }
 
 void nBody()
 {
 	if(Pause != 1)
 	{	
-		getForces(BodyPositionX, BodyPositionY, BodyPositionZ, BodyVelocityX, BodyVelocityY, BodyVelocityZ, BodyForceX, BodyForceY, BodyForceZ, MassOfBody,  G,  H,  Epsilon,  Drag, Dt, NumberOfBodies);
+		getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, NumberOfBodies);
         
-        	DrawTimer++;
+        DrawTimer++;
 		if(DrawTimer == DrawRate) 
 		{
 			drawPicture();
@@ -686,12 +680,23 @@ void terminalPrint()
 	if (MovieFlag == 0) 
 	{
 		printf("\033[0;31m");
-		printf(BOLD_ON "Video Recording Off" BOLD_OFF); 
+		printf(BOLD_ON "Video Recording Off\n" BOLD_OFF); 
 	}
 	else 
 	{
 		printf("\033[0;32m");
-		printf(BOLD_ON "Video Recording On" BOLD_OFF);
+		printf(BOLD_ON "Video Recording On\n" BOLD_OFF);
+	}
+
+	if (NewBodyToggle== 0) 
+	{
+		printf("\033[0;31m");
+		printf(BOLD_ON "Mode: Position" BOLD_OFF); 
+	}
+	else 
+	{
+		printf("\033[0;32m");
+		printf(BOLD_ON "Mode: Add Body" BOLD_OFF);
 	}
 	
 	printf("\n");
