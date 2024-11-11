@@ -81,7 +81,57 @@ float4 centerOfMass();
 float4 linearVelocity();
 void zeroOutSystem();
 
+//Toggles
+int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
+
 //#include "./callBackFunctions.h"
+
+typedef struct
+{
+	int id;
+	bool isSolid;
+	float4 Color;
+	int movement; //preconfigured movement pattern
+	float4 pos;
+	float4 vel;
+} Body;
+
+Body* bodies = NULL;
+int numBodies = 0;
+
+void addBody(int index, double x, double y, double z, double vx, double vy, double vz, double mass) 
+{
+    // Reallocate memory to accommodate the new body
+    bodies = (Body*)realloc(bodies, (numBodies + 1) * sizeof(Body));
+    if (bodies == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+    // Initialize the new body
+	bodies[numBodies].id = index;
+	bodies[numBodies].isSolid = true;
+	bodies[numBodies].Color.x = 1.0;
+	bodies[numBodies].Color.y = 1.0;
+	bodies[numBodies].Color.z = 1.0;
+	bodies[numBodies].Color.w = 1.0;
+	bodies[numBodies].movement = 0;
+	bodies[numBodies].pos.x = x;
+	bodies[numBodies].pos.y = y;
+	bodies[numBodies].pos.z = z;
+	bodies[numBodies].pos.w = 1.0;
+	bodies[numBodies].vel.x = vx;
+	bodies[numBodies].vel.y = vy;
+	bodies[numBodies].vel.z = vz;
+	bodies[numBodies].vel.w = 0.0;
+
+    // Increment the number of bodies
+    numBodies++;
+}
+
+void freeBodies() 
+{
+    free(bodies);
+}
 
 void Display()
 {
@@ -159,6 +209,10 @@ void KeyPressed(unsigned char key, int x, int y)
 		screenShot();
 		terminalPrint();
 	}
+	if (key == 'n') // Add a new body
+	{
+		NewBodyToggle = 1;
+	}
 }
 
 void mousePassiveMotionCallback(int x, int y) 
@@ -177,7 +231,10 @@ void mymouse(int button, int state, int x, int y)
 	{	
 		if(button == GLUT_LEFT_BUTTON)
 		{	
-			// Do stuff in here if you choose to when the left mouse button is pressed.
+			if(NewBodyToggle == 1)
+			{
+				//place new body where the mouse is.
+			}
 		}
 		else if(button == GLUT_RIGHT_BUTTON) // Right Mouse button down
 		{
@@ -726,7 +783,6 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
 
 
 

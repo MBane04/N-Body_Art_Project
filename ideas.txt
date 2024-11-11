@@ -15,7 +15,9 @@ How to add click & drag fucntions
 
 Mason:
 1.) Figure out how to place n number of balls in the program
-2.)Create the struct storing information about each ball
+    a.) add a function to initialize, mouse coord's set pos and preprogrammed movements set velocities
+        i.)Add something that makes the balls sit still for proof of concept
+2.)Create the struct storing information about each ball  --> DONE
 
 Later
     Write struct information to a file so we can rerun with the same initial conditions
