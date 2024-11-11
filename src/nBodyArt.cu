@@ -253,16 +253,22 @@ void mymouse(int button, int state, int x, int y)
 		// When you turn the mouse whell forward this is called.
 		if(button == 3)
 		{
-		
+			EyeZ -=0.1;
+			
 		}
 		
 		// When you turn the mouse whell backward this is called.
 		else if(button == 4)
 		{
-		
+			EyeZ += 0.1;
+			
 		}
 	}
+	glLoadIdentity();
+	gluLookAt(EyeX, EyeY, EyeZ, CenterX, CenterY, CenterZ, UpX, UpY, UpZ);
+	glutPostRedisplay();
 }
+
 
 string getTimeStamp()
 {
