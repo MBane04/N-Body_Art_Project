@@ -35,7 +35,7 @@ Leah:
 Trevor:
     1.) Callback functions:
         If not messing with balls 
-            Scroll: Zoom in/out [only in pause]
+            Scroll: Zoom in/out [only in pause] make in work in both views
             Click and drag: Moves simulation [only in pause]
             p: pause
             q: quit
