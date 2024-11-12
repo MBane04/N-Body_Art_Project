@@ -98,7 +98,7 @@ typedef struct
 } Body;
 
 Body* bodies = NULL;
-int numBodies = 0;
+int numBodies = NumberOfBodies;
 
 void addBody(int index, double x, double y, double z, double vx, double vy, double vz, double mass) 
 {
@@ -160,10 +160,16 @@ void KeyPressed(unsigned char key, int x, int y)
 {	
 	if(key == 'q')
 	{
-		pclose(ffmpeg);
-		glutDestroyWindow(Window);
-		printf("\nw Good Bye\n");
-		exit(0);
+		// Check if ffmpeg is not NULL before closing
+        if (ffmpeg != NULL) {
+            pclose(ffmpeg);
+            ffmpeg = NULL; // Optionally set to NULL after closing
+        } else {
+            fprintf(stderr, "Warning: Attempted to close a NULL file pointer\n");
+        }
+        glutDestroyWindow(Window);
+        printf("\nw Good Bye\n");
+        exit(0);
 	}
 	if(key == 'o')
 	{
