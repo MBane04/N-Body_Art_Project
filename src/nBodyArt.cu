@@ -69,7 +69,7 @@ double UpZ;
 // Prototyping functions
 void setSimulationParameters();
 void allocateMemory();
-void setInitailConditions();
+void setInitialConditions();
 void drawPicture();
 void nBody();
 void errorCheck(const char*);
@@ -125,7 +125,7 @@ void addBody(Body newBody)
     numBodies++;
 
 	//for debugging
-	//printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
+	printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
 }
 
 void freeBodies() 
@@ -247,9 +247,9 @@ void mymouse(int button, int state, int x, int y)
                 float x = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
                 float y = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
                 float z = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float vx = VelocityMax*((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float vy = VelocityMax*((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float vz = VelocityMax*((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float vx = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float vy = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float vz = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
                 float mass = MassOfBody;
 
                 float colorx = ((float)rand()/(float)RAND_MAX);
@@ -320,7 +320,6 @@ string getTimeStamp()
 	stimeMin << curTimeMin;
 	stimeSec << curTimeSec;
 	string timeStamp;
-
 	if (curTimeMin <= 9)	
 		timeStamp = smonth.str() + "-" + sday.str() + "-" + syear.str() + '_' + stimeHour.str() + ".0" + stimeMin.str() + 
 					"." + stimeSec.str();
@@ -402,8 +401,6 @@ void screenShot()
 	system("rm output1.mp4");
 	printf("\nScreenshot Captured: \n");
 	cout << "Saved as " << ts << ".jpeg" << endl;
-
-w Good Bye
 	
 	Pause = pauseFlag;
 	//ffmpeg -i output1.mp4 output_%03d.jpeg
@@ -450,7 +447,7 @@ void allocateMemory()
     printf("Initial memory allocated with capacity: %d\n", capacity);
 }
 
-void setInitailConditions()
+void setInitialConditions()
 {
     float dx, dy, dz, d, d2;
     int test;
@@ -744,7 +741,7 @@ void setup()
 {	
 	setSimulationParameters();
 	allocateMemory();
-	setInitailConditions();
+	setInitialConditions();
 	zeroOutSystem();
     	DrawTimer = 0;
     	PrintRate = 0;

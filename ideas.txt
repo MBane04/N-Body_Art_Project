@@ -7,8 +7,7 @@ Each ball has its own attributes in a struct (Solid, Color, Movement, Position, 
 
 Questions...
 Memory issues with no known # of balls?
-    Sol: Dynamically allocated mem?
-    (Note: need to use realloc, a very computationally expensive operation, so try to linimize use and maximize memory.... Double every time its needed)
+    DONE
 
 How to add click & drag fucntions
     Sol: Look @ gl or ask chat
