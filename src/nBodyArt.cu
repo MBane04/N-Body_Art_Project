@@ -48,7 +48,7 @@ int* Buffer;
 int MovieOn;
 int MovieFlag;
 int Trace;
-double MouseX, MouseY, MouseZ;
+float MouseX, MouseY, MouseZ;
 
 // Window globals
 static int Window;
@@ -102,6 +102,7 @@ Body* bodies = NULL;
 int numBodies = NumberOfInitBodies;
 int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 
+
 void addBody(Body newBody) 
 {
     // Reallocate memory to accommodate the new body
@@ -117,6 +118,17 @@ void addBody(Body newBody)
         bodies = temp;//assign the new memory to the bodies array, so long as memory allocation was successful
 		//printf("Reallocated memory to capacity: %d\n", capacity);
     }
+
+
+	//
+	if(newBody.movement == 0)
+	{
+		newBody.vel.x = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+		newBody.vel.y = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+		newBody.vel.z = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+	}
+
+
 
     /// Add the new body to the array
 	bodies[numBodies] = newBody;
@@ -155,10 +167,13 @@ void KeyPressed(unsigned char key, int x, int y)
 	if(key == 'q')
 	{
 		// Check if ffmpeg is not NULL before closing
-        if (ffmpeg != NULL) {
+        if (ffmpeg != NULL) 
+		{
             pclose(ffmpeg);
             ffmpeg = NULL; // Optionally set to NULL after closing
-        } else {
+        } 
+		else 
+		{
             fprintf(stderr, "Warning: Attempted to close a NULL file pointer\n");
         }
         glutDestroyWindow(Window);
@@ -243,13 +258,12 @@ void mymouse(int button, int state, int x, int y)
 			{
 
                 //generate random numbers for all the properties of the new body
+				
                 int index = numBodies; // Define and initialize index
-                float x = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float y = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float z = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float vx = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float vy = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
-                float vz = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+				MouseX = (2.0*x/XWindowSize - 1.0);
+				MouseY = -(2.0*y/YWindowSize - 1.0);
+				MouseZ = 0.0;
+
                 float mass = MassOfBody;
 
                 float colorx = ((float)rand()/(float)RAND_MAX);
@@ -263,8 +277,7 @@ void mymouse(int button, int state, int x, int y)
                 newBody.isSolid = true;
                 newBody.color = {colorx, colory, colorz, 1.0f}; // Directly assign values to float4
                 newBody.movement = 0;
-                newBody.pos = {x, y, z, 1.0f}; // Directly assign values to float4
-                newBody.vel = {vx, vy, vz, 0.0f}; // Directly assign values to float4
+                newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
                 newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
 
                 addBody(newBody);
@@ -566,7 +579,17 @@ void drawPicture()
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClear(GL_DEPTH_BUFFER_BIT);
 	}
-		
+	
+	if (NewBodyToggle == 1)
+	{
+		//set mouse to look look like a new body
+		glColor3d(1.0,1.0,1.0);
+		glPushMatrix();
+			glTranslatef(MouseX, MouseY, MouseZ);
+			glutSolidSphere(DiameterOfBody/2.0, 20, 20);
+		glPopMatrix();
+	}
+
 	for(int i = 0; i < numBodies; i++)
 	{
 		glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
