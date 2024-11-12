@@ -1,0 +1,7 @@
+cd src
+nvcc -G -g nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL
+
+gdb ./nBodyArt
+
+#In case of emergency (memory leak), break glass
+#valgrind --leak-check=full --track-origins=yes ./Executables/nBodyArt

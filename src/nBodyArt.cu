@@ -18,6 +18,7 @@ FILE* ffmpeg;
 // defines for terminal stuff.
 #define BOLD_ON  "\e[1m"
 #define BOLD_OFF   "\e[m"
+#define INITIAL_CAPACITY 100
 
 FILE* MovieFile;
 
@@ -99,39 +100,32 @@ typedef struct
 
 Body* bodies = NULL;
 int numBodies = NumberOfInitBodies;
+int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 
-void addBody(int index, double x, double y, double z, double vx, double vy, double vz, double mass) 
+void addBody(Body newBody) 
 {
     // Reallocate memory to accommodate the new body
-    Body* temp = (Body*)realloc(bodies, (numBodies + 1) * sizeof(Body));
-    if (temp == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
+    if (numBodies >= capacity) //if the new body will exceed the current capacity
+	{
+        capacity *= 2; //double the capacity
+        Body* temp = (Body*)realloc(bodies, capacity * sizeof(Body)); //reallocate memory to accommodate the new body
+        if (temp == NULL)  //if memory allocation fails
+		{
+            fprintf(stderr, "Memory allocation failed\n");
+            exit(1);
+        }
+        bodies = temp;//assign the new memory to the bodies array, so long as memory allocation was successful
+		//printf("Reallocated memory to capacity: %d\n", capacity);
     }
-    bodies = temp;
 
-    // Initialize the new body
-	bodies[numBodies].id = index;
-	bodies[numBodies].isSolid = true;
-	bodies[numBodies].color.x = 1.0;
-	bodies[numBodies].color.y = 1.0;
-	bodies[numBodies].color.z = 1.0;
-	bodies[numBodies].color.w = 1.0;
-	bodies[numBodies].movement = 0;
-	bodies[numBodies].pos.x = x;
-	bodies[numBodies].pos.y = y;
-	bodies[numBodies].pos.z = z;
-	bodies[numBodies].pos.w = 1.0;
-	bodies[numBodies].vel.x = vx;
-	bodies[numBodies].vel.y = vy;
-	bodies[numBodies].vel.z = vz;
-	bodies[numBodies].vel.w = 0.0;
+    /// Add the new body to the array
+	bodies[numBodies] = newBody;
 
     // Increment the number of bodies
     numBodies++;
 
 	//for debugging
-	printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", index, x, y, z, vx, vy, vz);
+	//printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
 }
 
 void freeBodies() 
@@ -247,15 +241,33 @@ void mymouse(int button, int state, int x, int y)
 		{	
 			if(NewBodyToggle == 1)
 			{
-				//generate random numbers for all the properties of the new body
-				double x = ((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
-				double y = ((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
-				double z = ((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
-				double vx = VelocityMax*((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
-				double vy = VelocityMax*((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
-				double vz = VelocityMax*((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
-				double mass = MassOfBody;
-				addBody(numBodies, x, y, z, vx, vy, vz, mass);
+
+                //generate random numbers for all the properties of the new body
+                int index = numBodies; // Define and initialize index
+                float x = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float y = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float z = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float vx = VelocityMax*((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float vy = VelocityMax*((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float vz = VelocityMax*((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
+                float mass = MassOfBody;
+
+                float colorx = ((float)rand()/(float)RAND_MAX);
+                float colory = ((float)rand()/(float)RAND_MAX);
+                float colorz = ((float)rand()/(float)RAND_MAX);
+
+                Body newBody; //create a new body with the body struct
+
+                //assign all the properties of the new body
+                newBody.id = index;
+                newBody.isSolid = true;
+                newBody.color = {colorx, colory, colorz, 1.0f}; // Directly assign values to float4
+                newBody.movement = 0;
+                newBody.pos = {x, y, z, 1.0f}; // Directly assign values to float4
+                newBody.vel = {vx, vy, vz, 0.0f}; // Directly assign values to float4
+                newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
+
+                addBody(newBody);
 			}
 		}
 		else if(button == GLUT_RIGHT_BUTTON) // Right Mouse button down
@@ -391,9 +403,7 @@ void screenShot()
 	printf("\nScreenshot Captured: \n");
 	cout << "Saved as " << ts << ".jpeg" << endl;
 
-	
-	//system("ffmpeg -i output1.mp4 screenShot.jpeg");
-	//system("rm output1.mp4");
+w Good Bye
 	
 	Pause = pauseFlag;
 	//ffmpeg -i output1.mp4 output_%03d.jpeg
@@ -430,8 +440,14 @@ void setSimulationParameters()
 
 void allocateMemory()
 {
-	//allocate memory for the bodies, now stored in the bodies array of structs
-	bodies = (Body*)malloc(numBodies * sizeof(Body));
+// Allocate initial memory for the bodies array
+    bodies = (Body*)malloc(capacity * sizeof(Body));
+    if (bodies == NULL) 
+    {
+        fprintf(stderr, "Initial memory allocation failed\n");
+        exit(1);
+    }
+    printf("Initial memory allocated with capacity: %d\n", capacity);
 }
 
 void setInitailConditions()
