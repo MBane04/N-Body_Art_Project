@@ -102,7 +102,91 @@ Body* bodies = NULL;
 int numBodies = NumberOfInitBodies;
 int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 
+// void readSimulationParameters()
+// {
+// 	ifstream data;
+// 	string name;
+	
+// 	data.open("./simulationSetup");
+	
+// 	if(data.is_open() == 1)
+// 	{
+		
+// 		getline(data,name,'=');
+// 		data >> PreviousRunFileName;
+		
+// 		getline(data,name,'=');
+// 		data >> Movement;
+		
+// 		getline(data,name,'=');
+// 		data >> Velocity;
+		
+// 		getline(data,name,'=');
+// 		data >> Radius;
 
+//       	        getline(data,name, '=');
+//         	data >> Mass;
+		
+// 		getline(data,name,'=');
+// 		data >> SparkleIntensity;
+		
+// 		getline(data,name,'=');
+// 		data >> PrintRate;
+		
+// 		getline(data,name,'=');
+// 		data >> DrawRate;
+		
+// 		getline(data,name,'=');
+// 		data >> Dt;
+		
+// 		getline(data,name,'=');
+// 		data >> Color.x;
+		
+// 		getline(data,name,'=');
+// 		data >> Color.y;
+		
+// 		getline(data,name,'=');
+// 		data >> Color.z;
+		
+// 		getline(data,name,'=');
+// 		data >> BackGroundColor;
+		
+// 	}
+// 	else
+// 	{
+// 		printf("\nTSU Error could not open simulationSetup file\n");
+// 		exit(0);
+// 	}
+// }
+
+// //this is how u open the setup file
+// void readSimulationParameters()
+// {
+// 	if(PreviousRunsFile == 0)
+// 	{
+// 		allocateMemory();
+// 		setBallAttributesAndMasses();
+
+// 	}
+// 	else if(PreviousRunsFile == 1)
+// 	{
+// 		FILE *inFile;
+// 		char fileName[256];
+		
+// 		strcpy(fileName, "");
+// 		strcat(fileName,"./PreviousRunsFile/");
+// 		strcat(fileName,PreviousRunFileName);
+// 		strcat(fileName,"/nBodyArt");
+// 		//printf("\n fileName = %s\n", fileName);
+
+// 		inFile = fopen(fileName,"rb");
+// 		if(inFile == NULL)
+// 		{
+// 			printf(" Can't open %s file.\n", fileName);
+// 			exit(0);
+// 		}
+//     }
+// }
 void addBody(Body newBody) 
 {
     // Reallocate memory to accommodate the new body
