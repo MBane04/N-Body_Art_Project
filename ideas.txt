@@ -35,12 +35,12 @@ Leah:
 Trevor:
     1.) Callback functions:
         If not messing with balls 
-            Scroll: Zoom in/out
-            Click and drag: Moves simulation
+            Scroll: Zoom in/out [only in pause]
+            Click and drag: Moves simulation [only in pause]
             p: pause
             q: quit
             t: trace  
-            v:Orthognal/frustrum view
+            v:Orthognal/frustrum view 
         Update Terminal
     2.) Create toggles
         defaultView
