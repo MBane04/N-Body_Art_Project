@@ -22,7 +22,7 @@ FILE* ffmpeg;
 FILE* MovieFile;
 
 // Globals
-int NumberOfBodies;
+int NumberOfInitBodies;
 float TotalRunTime;
 float Dt;
 float G;
@@ -98,7 +98,7 @@ typedef struct
 } Body;
 
 Body* bodies = NULL;
-int numBodies = NumberOfBodies;
+int numBodies = NumberOfInitBodies;
 
 void addBody(int index, double x, double y, double z, double vx, double vy, double vz, double mass) 
 {
@@ -223,7 +223,9 @@ void KeyPressed(unsigned char key, int x, int y)
 	}
 	if (key == 'n') // Add a new body
 	{
-		NewBodyToggle = 1;
+		if(NewBodyToggle == 0) NewBodyToggle = 1;
+		else NewBodyToggle = 0;
+		terminalPrint();
 	}
 }
 
@@ -245,7 +247,15 @@ void mymouse(int button, int state, int x, int y)
 		{	
 			if(NewBodyToggle == 1)
 			{
-				//place new body where the mouse is.
+				//generate random numbers for all the properties of the new body
+				double x = ((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
+				double y = ((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
+				double z = ((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
+				double vx = VelocityMax*((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
+				double vy = VelocityMax*((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
+				double vz = VelocityMax*((double)rand()/(double)RAND_MAX)*2.0 - 1.0;
+				double mass = MassOfBody;
+				addBody(numBodies, x, y, z, vx, vy, vz, mass);
 			}
 		}
 		else if(button == GLUT_RIGHT_BUTTON) // Right Mouse button down
@@ -391,7 +401,7 @@ void screenShot()
 
 void setSimulationParameters()
 {
-	NumberOfBodies = 16;
+	numBodies = 16;
 
 	TotalRunTime = 10000.0;
 
@@ -421,7 +431,7 @@ void setSimulationParameters()
 void allocateMemory()
 {
 	//allocate memory for the bodies, now stored in the bodies array of structs
-	bodies = (Body*)malloc(NumberOfBodies * sizeof(Body));
+	bodies = (Body*)malloc(numBodies * sizeof(Body));
 }
 
 void setInitailConditions()
@@ -431,7 +441,7 @@ void setInitailConditions()
 	time_t t;
 	
 	srand((unsigned) time(&t));
-	for(int i = 0; i < NumberOfBodies; i++)
+	for(int i = 0; i < numBodies; i++)
 	{
 		test = 0;
 		while(test == 0)
@@ -480,7 +490,7 @@ float4 centerOfMass()
 	centerOfMass.z = 0.0;
 	totalMass = 0.0;
 	
-	for(int i = 0; i < NumberOfBodies; i++)
+	for(int i = 0; i < numBodies; i++)
 	{
     	centerOfMass.x += bodies[i].pos.x*MassOfBody;
 		centerOfMass.y += bodies[i].pos.y*MassOfBody;
@@ -504,7 +514,7 @@ float4 linearVelocity()
 	linearVelocity.z = 0.0;
 	totalMass = 0.0;
 	
-	for(int i = 0; i < NumberOfBodies; i++)
+	for(int i = 0; i < numBodies; i++)
 	{
     	linearVelocity.x += bodies[i].vel.x*MassOfBody;
 		linearVelocity.y += bodies[i].vel.y*MassOfBody;
@@ -524,7 +534,7 @@ void zeroOutSystem()
 	pos = centerOfMass();
 	vel = linearVelocity();
 		
-	for(int i = 0; i < NumberOfBodies; i++)
+	for(int i = 0; i < numBodies; i++)
 	{
 		bodies[i].pos.x -= pos.x;
 		bodies[i].pos.y -= pos.y;
@@ -544,7 +554,7 @@ void drawPicture()
 		glClear(GL_DEPTH_BUFFER_BIT);
 	}
 		
-	for(int i = 0; i < NumberOfBodies; i++)
+	for(int i = 0; i < numBodies; i++)
 	{
 		glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
 		glPushMatrix();
@@ -611,7 +621,7 @@ void nBody()
 {
 	if(Pause != 1)
 	{	
-		getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, NumberOfBodies);
+		getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
         
         DrawTimer++;
 		if(DrawTimer == DrawRate) 
@@ -693,16 +703,16 @@ void terminalPrint()
 		printf("\033[0;32m");
 		printf(BOLD_ON "Video Recording On\n" BOLD_OFF);
 	}
-
+	printf("\n n: Simulaton Mode Add View/Add Body Toggle --> Mode:");
 	if (NewBodyToggle== 0) 
 	{
 		printf("\033[0;31m");
-		printf(BOLD_ON "Mode: Position" BOLD_OFF); 
+		printf(BOLD_ON "View" BOLD_OFF); 
 	}
 	else 
 	{
 		printf("\033[0;32m");
-		printf(BOLD_ON "Mode: Add Body" BOLD_OFF);
+		printf(BOLD_ON "Add Body" BOLD_OFF);
 	}
 	
 	printf("\n");
