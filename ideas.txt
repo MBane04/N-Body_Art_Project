@@ -42,9 +42,6 @@ Trevor:
             t: trace  
             v:Orthognal/frustrum view 
         Update Terminal
-    2.) Create toggles
-        defaultView
-        draw
 
 Shelby:
     See what we need to do to paint Van Gogh's Starry Night
