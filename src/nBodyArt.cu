@@ -15,6 +15,7 @@ using namespace std;
 
 FILE* ffmpeg;
 
+
 // defines for terminal stuff.
 #define BOLD_ON  "\e[1m"
 #define BOLD_OFF   "\e[m"
@@ -49,6 +50,7 @@ int MovieOn;
 int MovieFlag;
 int Trace;
 float MouseX, MouseY, MouseZ;
+float newBodyRadius = 1.0;
 
 // Window globals
 static int Window;
@@ -96,6 +98,7 @@ typedef struct
 	float4 pos;
 	float4 vel;
 	float4 force;
+	float radius;
 } Body;
 
 Body* bodies = NULL;
@@ -124,11 +127,11 @@ int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 // 		getline(data,name,'=');
 // 		data >> Radius;
 
-//       	        getline(data,name, '=');
-//         	data >> Mass;
+//       	getline(data,name, '=');
+//     	data >> Mass;
 		
-// 		getline(data,name,'=');
-// 		data >> SparkleIntensity;
+// 		// getline(data,name,'=');
+// 		// data >> SparkleIntensity;
 		
 // 		getline(data,name,'=');
 // 		data >> PrintRate;
@@ -187,6 +190,7 @@ int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 // 		}
 //     }
 // }
+
 void addBody(Body newBody) 
 {
     // Reallocate memory to accommodate the new body
@@ -205,12 +209,17 @@ void addBody(Body newBody)
 
 
 	//
-	if(newBody.movement == 0)
+	if(newBody.movement == 0) //random movement
 	{
 		newBody.vel.x = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
 		newBody.vel.y = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
 		newBody.vel.z = ((float)rand()/(float)RAND_MAX)*2.0f - 1.0f;
 	}
+	if (newBody.movement == 1) //circular movement
+	{
+
+	}
+	
 
 
 
@@ -320,13 +329,29 @@ void KeyPressed(unsigned char key, int x, int y)
 		else NewBodyToggle = 0;
 		terminalPrint();
 	}
+	if(key == ']')  
+	{
+		newBodyRadius += 0.005;
+		terminalPrint();
+		//printf("\n Your selection area = %f times the radius of atrium. \n", HitMultiplier);
+	}
+	if(key == '[')
+	{
+		newBodyRadius -= 0.005;
+		if(newBodyRadius < 0.0) newBodyRadius = 0.0;
+		terminalPrint();
+		//printf("\n Your selection area = %f times the radius of atrium. \n", HitMultiplier);
+	}
 }
 
 void mousePassiveMotionCallback(int x, int y) 
 {
 	// This function is called when the mouse moves without any button pressed
 	// x and y are the current mouse coordinates
-	
+	MouseX = (2.0*x/XWindowSize - 1.0);
+	MouseY = -(2.0*y/YWindowSize - 1.0);
+	MouseZ = 0.0;
+	drawPicture();
 	// x and y come in as 0 to XWindowSize and 0 to YWindowSize. 
 	// Use this if you choose to.
 }
@@ -363,6 +388,7 @@ void mymouse(int button, int state, int x, int y)
                 newBody.movement = 0;
                 newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
                 newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
+				newBody.radius = newBodyRadius*DiameterOfBody/2.0;
 
                 addBody(newBody);
 			}
@@ -397,7 +423,7 @@ void mymouse(int button, int state, int x, int y)
 	}
 	glLoadIdentity();
 	gluLookAt(EyeX, EyeY, EyeZ, CenterX, CenterY, CenterZ, UpX, UpY, UpZ);
-	glutPostRedisplay();
+	//glutPostRedisplay();
 }
 
 
@@ -587,6 +613,8 @@ void setInitialConditions()
 				bodies[i].color.z = ((float)rand()/(float)RAND_MAX);
 			}
 		}
+
+		bodies[i].radius =((float)rand()/(float)RAND_MAX)* DiameterOfBody/2.0;
 	}
 }
 
@@ -670,7 +698,7 @@ void drawPicture()
 		glColor3d(1.0,1.0,1.0);
 		glPushMatrix();
 			glTranslatef(MouseX, MouseY, MouseZ);
-			glutSolidSphere(DiameterOfBody/2.0, 20, 20);
+			glutSolidSphere(newBodyRadius*DiameterOfBody/2.0, 20, 20);
 		glPopMatrix();
 	}
 
@@ -679,7 +707,7 @@ void drawPicture()
 		glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
 		glPushMatrix();
 			glTranslatef(bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z);
-			glutSolidSphere(DiameterOfBody/2.0, 20, 20);
+			glutSolidSphere(bodies[i].radius, 20, 20);
 		glPopMatrix();
 	}
 	glutSwapBuffers();
