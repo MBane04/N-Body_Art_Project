@@ -86,7 +86,7 @@ void zeroOutSystem();
 
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
-
+bool isOrthogonal = false;
 //#include "./callBackFunctions.h"
 
 typedef struct
@@ -273,22 +273,27 @@ void KeyPressed(unsigned char key, int x, int y)
         printf("\nw Good Bye\n");
         exit(0);
 	}
-	if(key == 'o')
-	{
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(-1.0, 1.0, -1.0, 1.0, Near, Far);
-		glMatrixMode(GL_MODELVIEW);
-		drawPicture();
-	}
-	if(key == 'f')
-	{
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
-		glMatrixMode(GL_MODELVIEW);
-		drawPicture();
-	}
+	if(key == 'v') 
+   	{
+	        glMatrixMode(GL_PROJECTION);
+	        glLoadIdentity();
+        
+	        if (isOrthogonal) 
+	        {		    
+			    glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
+			} 
+				else 
+				{
+				    // Switch to orthogonal view
+				    glOrtho(-1.0, 1.0, -1.0, 1.0, Near, Far);
+				}
+			
+			glMatrixMode(GL_MODELVIEW);
+			drawPicture(); 
+			
+			// Toggle the view state
+			isOrthogonal = !isOrthogonal;
+   	 }
 	if(key == 'p')
 	{
 		if(Pause == 1) Pause = 0;
@@ -839,7 +844,18 @@ void terminalPrint()
 	{
 		printf("\e[1m" " \033[0;32mOff\n" "\e[m");
 	}
-	
+	printf("\n");
+	printf("\033[0m");
+	printf(" v: Toggle view (Perspective/Orthogonal) --> ");
+	printf(" Current View: ");
+	if (isOrthogonal) 
+	{
+		printf("\e[1m" " \033[0;32mOrthogonal\n" "\e[m");
+	}
+	else 
+	{
+		printf("\e[1m" " \033[0;31mDefault\n" "\e[m");
+	}
 	printf("\n M: Video On/Off toggle --> ");
 	if (MovieFlag == 0) 
 	{
@@ -871,6 +887,7 @@ void terminalPrint()
 	
 	printf("\n");
 }
+
 
 void setup()
 {	
