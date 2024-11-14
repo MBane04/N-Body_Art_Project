@@ -11,6 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <cuda.h>
+#include <signal.h>
 using namespace std;
 
 FILE* ffmpeg;
@@ -240,9 +241,9 @@ void freeBodies()
 
 void Display()
 {
-	glClear(GL_COLOR_BUFFER_BIT);
-	glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	drawPicture();
+	glutSwapBuffers();
 }
 
 void idle()
@@ -252,7 +253,42 @@ void idle()
 
 void reshape(int w, int h)
 {
-	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+    // Prevent division by zero
+    if (h == 0) h = 1;
+
+    // Calculate the aspect ratio of the window
+    float aspectRatio = (float)w / (float)h;
+
+    // Set the viewport to cover the new window
+    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+
+    // Set the projection matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    // Adjust the projection matrix to maintain the aspect ratio of the bodies
+    if (isOrthogonal) {
+        if (aspectRatio >= 1.0f) {
+            // Window is wider than it is tall
+            glOrtho(-1.0 * aspectRatio, 1.0 * aspectRatio, -1.0, 1.0, Near, Far);
+        } else {
+            // Window is taller than it is wide
+            glOrtho(-1.0, 1.0, -1.0 / aspectRatio, 1.0 / aspectRatio, Near, Far);
+        }
+    } else {
+        if (aspectRatio >= 1.0f) {
+            // Window is wider than it is tall
+            glFrustum(-0.2 * aspectRatio, 0.2 * aspectRatio, -0.2, 0.2, Near, Far);
+        } else {
+            // Window is taller than it is wide
+            glFrustum(-0.2, 0.2, -0.2 / aspectRatio, 0.2 / aspectRatio, Near, Far);
+        }
+    }
+
+    // Switch back to the modelview matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(EyeX, EyeY, EyeZ, CenterX, CenterY, CenterZ, UpX, UpY, UpZ);
 }
 
 void KeyPressed(unsigned char key, int x, int y)
@@ -275,24 +311,14 @@ void KeyPressed(unsigned char key, int x, int y)
 	}
 	if(key == 'v') 
    	{
-	        glMatrixMode(GL_PROJECTION);
-	        glLoadIdentity();
-        
-	        if (isOrthogonal) 
-	        {		    
-			    glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
-			} 
-				else 
-				{
-				    // Switch to orthogonal view
-				    glOrtho(-1.0, 1.0, -1.0, 1.0, Near, Far);
-				}
-			
-			glMatrixMode(GL_MODELVIEW);
-			drawPicture(); 
-			
-			// Toggle the view state
-			isOrthogonal = !isOrthogonal;
+        // Toggle the view mode
+        isOrthogonal = !isOrthogonal;
+
+        // Call reshape to update the projection matrix
+        reshape(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+
+        // Redraw the scene
+        glutPostRedisplay();
    	 }
 	if(key == 'p')
 	{
@@ -356,7 +382,7 @@ void mousePassiveMotionCallback(int x, int y)
 	MouseX = (2.0*x/XWindowSize - 1.0);
 	MouseY = -(2.0*y/YWindowSize - 1.0);
 	MouseZ = 0.0;
-	drawPicture();
+	//drawPicture();
 	// x and y come in as 0 to XWindowSize and 0 to YWindowSize. 
 	// Use this if you choose to.
 }
@@ -457,25 +483,53 @@ string getTimeStamp()
 	return timeStamp;
 }
 
+// Signal handler for SIGPIPE
+void handle_sigpipe(int sig)
+{
+    fprintf(stderr, "Caught SIGPIPE signal: %d\n", sig);
+}
+
 void movieOn()
 {
-	string ts = getTimeStamp();
-	ts.append(".mp4");
+    // Register the SIGPIPE signal handler
+    signal(SIGPIPE, handle_sigpipe);
 
-	// Setting up the movie buffer.
-	/*const char* cmd = "ffmpeg -loglevel quiet -r 60 -f rawvideo -pix_fmt rgba -s 1000x1000 -i - "
-		      "-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip output.mp4";*/
+    string ts = getTimeStamp();
+    ts.append(".mp4");
 
-	string baseCommand = "ffmpeg -loglevel quiet -r 60 -f rawvideo -pix_fmt rgba -s 1000x1000 -i - "
-				"-c:v libx264rgb -threads 0 -preset fast -y -pix_fmt yuv420p -crf 0 -vf vflip ";
+    // Convert the x and y window size to a string of format "XsizexYsize"
+    stringstream ss;
+    ss << XWindowSize << "x" << YWindowSize;
+    string windowSize = ss.str();
 
-	string z = baseCommand + ts;
+    // Setting up the movie buffer with the dynamic window size
+    string baseCommand = "ffmpeg -loglevel quiet -r 60 -f rawvideo -pix_fmt rgba -s " + windowSize + " -i - "
+                         "-c:v libx264rgb -threads 0 -preset fast -y -pix_fmt yuv420p -crf 0 -vf vflip 2>ffmpeg_error.log ";
 
-	const char *ccx = z.c_str();
-	MovieFile = popen(ccx, "w");
-	//Buffer = new int[XWindowSize*YWindowSize];
-	Buffer = (int*)malloc(XWindowSize*YWindowSize*sizeof(int));
-	MovieOn = 1;
+    string z = baseCommand + ts;
+
+    const char *ccx = z.c_str();
+    MovieFile = popen(ccx, "w");
+
+    // Check if popen was successful
+    if (MovieFile == NULL) {
+        fprintf(stderr, "Error: Failed to open movie file with popen\n");
+        return;
+    }
+
+    // Allocate buffer
+    Buffer = (int*)malloc(XWindowSize * YWindowSize * sizeof(int));
+
+    // Check if malloc was successful
+    if (Buffer == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for buffer\n");
+        pclose(MovieFile);
+        MovieFile = NULL;
+        return;
+    }
+
+    MovieOn = 1;
+    printf("Movie recording started successfully\n");
 }
 
 void movieOff()
@@ -494,8 +548,15 @@ void screenShot()
 	FILE* ScreenShotFile;
 	int* buffer;
 
-	const char* cmd = "ffmpeg -loglevel quiet -framerate 60 -f rawvideo -pix_fmt rgba -s 1000x1000 -i - "
-				"-c:v libx264rgb -threads 0 -preset fast -y -crf 0 -vf vflip output1.mp4";
+	//convert the x and y windowsize to a string of format "XsizexYsize"
+    stringstream ss;
+    ss << XWindowSize << "x" << YWindowSize;
+    string windowSize = ss.str();
+
+    // Construct the ffmpeg command with the dynamic window size
+    string baseCommand = "ffmpeg -loglevel quiet -framerate 60 -f rawvideo -pix_fmt rgba -s " + windowSize + " -i - "
+                         "-c:v libx264rgb -threads 0 -preset fast -y -crf 0 -vf vflip output1.mp4";
+    const char* cmd = baseCommand.c_str();
 	//const char* cmd = "ffmpeg -r 60 -f rawvideo -pix_fmt rgba -s 1000x1000 -i - "
 	//              "-threads 0 -preset fast -y -pix_fmt yuv420p -crf 21 -vf vflip output1.mp4";
 	ScreenShotFile = popen(cmd, "w");
@@ -693,8 +754,7 @@ void drawPicture()
 {
 	if(Trace == 0)
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
-		glClear(GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	
 	if (NewBodyToggle == 1)
@@ -719,7 +779,7 @@ void drawPicture()
 	
 	if(MovieOn == 1)
 	{
-		glReadPixels(5, 5, XWindowSize, YWindowSize, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
+		glReadPixels(0, 0, XWindowSize, YWindowSize, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
 		fwrite(Buffer, sizeof(int)*XWindowSize*YWindowSize, 1, MovieFile);
 	}
 }
@@ -906,74 +966,78 @@ void setup()
 
 int main(int argc, char** argv)
 {
-	setup();
-	
-	XWindowSize = 1000;
-	YWindowSize = 1000; 
-	//Buffer = new int[XWindowSize*YWindowSize];
+    setup();
 
-	// Clip plains
-	Near = 0.2;
-	Far = 30.0;
+    XWindowSize = 3000;
+    YWindowSize = 1500;
 
-	//Direction here your eye is located location
-	EyeX = 0.0;
-	EyeY = 0.0;
-	EyeZ = 2.0;
+    // Clip planes
+    Near = 0.2;
+    Far = 30.0;
 
-	//Where you are looking
-	CenterX = 0.0;
-	CenterY = 0.0;
-	CenterZ = 0.0;
+    // Direction here your eye is located location
+    EyeX = 0.0;
+    EyeY = 0.0;
+    EyeZ = 2.0;
 
-	//Up vector for viewing
-	UpX = 0.0;
-	UpY = 1.0;
-	UpZ = 0.0;
-	
-	glutInit(&argc,argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB);
-	glutInitWindowSize(XWindowSize,YWindowSize);
-	glutInitWindowPosition(5,5);
-	Window = glutCreateWindow("N Body");
-	
-	gluLookAt(EyeX, EyeY, EyeZ, CenterX, CenterY, CenterZ, UpX, UpY, UpZ);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
-	glMatrixMode(GL_MODELVIEW);
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	
-	GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
-	GLfloat light_ambient[]  = {0.0, 0.0, 0.0, 1.0};
-	GLfloat light_diffuse[]  = {1.0, 1.0, 1.0, 1.0};
-	GLfloat light_specular[] = {1.0, 1.0, 1.0, 1.0};
-	GLfloat lmodel_ambient[] = {0.2, 0.2, 0.2, 1.0};
-	GLfloat mat_specular[]   = {1.0, 1.0, 1.0, 1.0};
-	GLfloat mat_shininess[]  = {10.0};
-	glShadeModel(GL_SMOOTH);
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_COLOR_MATERIAL);
-	glEnable(GL_DEPTH_TEST);
-	
-	glutPassiveMotionFunc(mousePassiveMotionCallback);
-	glutMouseFunc(mymouse);
-	glutDisplayFunc(Display);
-	glutReshapeFunc(reshape);
-	glutKeyboardFunc(KeyPressed);
-	glutIdleFunc(idle);
-	terminalPrint();
-	glutMainLoop();
-	return 0;
+    // Where you are looking
+    CenterX = 0.0;
+    CenterY = 0.0;
+    CenterZ = 0.0;
+
+    // Up vector for viewing
+    UpX = 0.0;
+    UpY = 1.0;
+    UpZ = 0.0;
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB);
+    glutInitWindowSize(XWindowSize, YWindowSize);
+    glutInitWindowPosition(5, 5);
+    Window = glutCreateWindow("N Body");
+
+    gluLookAt(EyeX, EyeY, EyeZ, CenterX, CenterY, CenterZ, UpX, UpY, UpZ);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
+    glMatrixMode(GL_MODELVIEW);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+
+    GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
+    GLfloat light_ambient[] = {0.0, 0.0, 0.0, 1.0};
+    GLfloat light_diffuse[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat light_specular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat lmodel_ambient[] = {0.2, 0.2, 0.2, 1.0};
+    GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat mat_shininess[] = {10.0};
+    glShadeModel(GL_SMOOTH);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_DEPTH_TEST);
+
+    glutPassiveMotionFunc(mousePassiveMotionCallback);
+    glutMouseFunc(mymouse);
+    glutDisplayFunc(Display);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(KeyPressed);
+    glutIdleFunc(idle);
+    terminalPrint();
+    glutMainLoop();
+
+    // Cleanup resources
+    movieOff();
+    freeBodies();
+
+    return 0;
 }
 
 
