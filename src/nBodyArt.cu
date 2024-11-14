@@ -87,7 +87,7 @@ void zeroOutSystem();
 
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
-bool isOrthogonal = false;
+bool isOrthogonal = true;
 //#include "./callBackFunctions.h"
 
 typedef struct
@@ -257,7 +257,7 @@ void reshape(int w, int h)
     if (h == 0) h = 1;
 
     // Calculate the aspect ratio of the window
-    float aspectRatio = (float)w / (float)h;
+    float aspectRatio = (float)w / (float)h; //currently 3000/1500 = 2
 
     // Set the viewport to cover the new window
     glViewport(0, 0, (GLsizei)w, (GLsizei)h);
@@ -267,19 +267,27 @@ void reshape(int w, int h)
     glLoadIdentity();
 
     // Adjust the projection matrix to maintain the aspect ratio of the bodies
-    if (isOrthogonal) {
-        if (aspectRatio >= 1.0f) {
+    if (isOrthogonal) 
+	{
+        if (aspectRatio >= 1.0f) 
+		{
             // Window is wider than it is tall
             glOrtho(-1.0 * aspectRatio, 1.0 * aspectRatio, -1.0, 1.0, Near, Far);
-        } else {
+        } 
+		else 
+		{
             // Window is taller than it is wide
             glOrtho(-1.0, 1.0, -1.0 / aspectRatio, 1.0 / aspectRatio, Near, Far);
         }
-    } else {
-        if (aspectRatio >= 1.0f) {
+    } 
+	else 
+	{
+        if (aspectRatio >= 1.0f) 
+		{
             // Window is wider than it is tall
             glFrustum(-0.2 * aspectRatio, 0.2 * aspectRatio, -0.2, 0.2, Near, Far);
-        } else {
+        } else 
+		{
             // Window is taller than it is wide
             glFrustum(-0.2, 0.2, -0.2 / aspectRatio, 0.2 / aspectRatio, Near, Far);
         }
@@ -377,14 +385,17 @@ void KeyPressed(unsigned char key, int x, int y)
 
 void mousePassiveMotionCallback(int x, int y) 
 {
-	// This function is called when the mouse moves without any button pressed
-	// x and y are the current mouse coordinates
-	MouseX = (2.0*x/XWindowSize - 1.0);
-	MouseY = -(2.0*y/YWindowSize - 1.0);
-	MouseZ = 0.0;
-	//drawPicture();
-	// x and y come in as 0 to XWindowSize and 0 to YWindowSize. 
-	// Use this if you choose to.
+
+	// Convert window coordinates to OpenGL coordinates
+		MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
+		MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+
+    // Print the converted coordinates for debugging
+    printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+
+
+    // Redraw the scene
+    //glutPostRedisplay();
 }
 
 // This is called when you push a mouse button.
@@ -400,9 +411,14 @@ void mymouse(int button, int state, int x, int y)
                 //generate random numbers for all the properties of the new body
 				
                 int index = numBodies; // Define and initialize index
-				MouseX = (2.0*x/XWindowSize - 1.0);
-				MouseY = -(2.0*y/YWindowSize - 1.0);
-				MouseZ = 0.0;
+
+				// Convert window coordinates to OpenGL coordinates
+				MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
+				MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+                MouseZ = 0.0f;
+
+                // Print the converted coordinates for debugging
+                printf("MouseX: %f, MouseY: %f, MouseZ: %f\n", MouseX, MouseY, MouseZ);
 
                 float mass = MassOfBody;
 
