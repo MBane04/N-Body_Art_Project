@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <cuda.h>
 #include <signal.h>
+#include <cmath>
 using namespace std;
 
 FILE* ffmpeg;
@@ -69,6 +70,20 @@ double UpX;
 double UpY;
 double UpZ;
 
+
+
+typedef struct
+{
+	int id;
+	bool isSolid;
+	float4 color;
+	int movement; //preconfigured movement pattern
+	float4 pos;
+	float4 vel;
+	float4 force;
+	float radius;
+} Body;
+
 // Prototyping functions
 void setSimulationParameters();
 void allocateMemory();
@@ -84,117 +99,153 @@ void screenShot();
 float4 centerOfMass();
 float4 linearVelocity();
 void zeroOutSystem();
+void addBody(Body newBody);
 
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-//#include "./callBackFunctions.h"
+int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
+string PreviousRunFile = "workingsimulationparams"; // The file name of the previous simulation you want to run.
 
-typedef struct
-{
-	int id;
-	bool isSolid;
-	float4 color;
-	int movement; //preconfigured movement pattern
-	float4 pos;
-	float4 vel;
-	float4 force;
-	float radius;
-} Body;
+
+
 
 Body* bodies = NULL;
 int numBodies = NumberOfInitBodies;
 int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 
-// void readSimulationParameters()
-// {
-// 	ifstream data;
-// 	string name;
-	
-// 	data.open("./simulationSetup");
-	
-// 	if(data.is_open() == 1)
-// 	{
-		
-// 		getline(data,name,'=');
-// 		data >> PreviousRunFileName;
-		
-// 		getline(data,name,'=');
-// 		data >> Movement;
-		
-// 		getline(data,name,'=');
-// 		data >> Velocity;
-		
-// 		getline(data,name,'=');
-// 		data >> Radius;
+void readBodiesFromFile(const char* filename)
+{
+    FILE* file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        fprintf(stderr, "Error: Could not open file %s for reading\n", filename);
+        return;
+    }
 
-//       	getline(data,name, '=');
-//     	data >> Mass;
-		
-// 		// getline(data,name,'=');
-// 		// data >> SparkleIntensity;
-		
-// 		getline(data,name,'=');
-// 		data >> PrintRate;
-		
-// 		getline(data,name,'=');
-// 		data >> DrawRate;
-		
-// 		getline(data,name,'=');
-// 		data >> Dt;
-		
-// 		getline(data,name,'=');
-// 		data >> Color.x;
-		
-// 		getline(data,name,'=');
-// 		data >> Color.y;
-		
-// 		getline(data,name,'=');
-// 		data >> Color.z;
-		
-// 		getline(data,name,'=');
-// 		data >> BackGroundColor;
-		
-// 	}
-// 	else
-// 	{
-// 		printf("\nTSU Error could not open simulationSetup file\n");
-// 		exit(0);
-// 	}
-// }
+    // Read the number of bodies from the top of the file
+    int numBodiesFromFile;
+    if (fscanf(file, "Number of bodies: %d\n", &numBodiesFromFile) != 1)
+    {
+        fprintf(stderr, "Error: Could not read the number of bodies from the file\n");
+        fclose(file);
+        return;
+    }
 
-// //this is how u open the setup file
-// void readSimulationParameters()
-// {
-// 	if(PreviousRunsFile == 0)
-// 	{
-// 		allocateMemory();
-// 		setBallAttributesAndMasses();
+    // Allocate memory based on the number of bodies
+    capacity = numBodiesFromFile;
+    bodies = (Body*)malloc(capacity * sizeof(Body));
+    if (bodies == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed\n");
+        fclose(file);
+        exit(1);
+    }
+    printf("Initial memory allocated with capacity: %d\n", capacity);
 
-// 	}
-// 	else if(PreviousRunsFile == 1)
-// 	{
-// 		FILE *inFile;
-// 		char fileName[256];
-		
-// 		strcpy(fileName, "");
-// 		strcat(fileName,"./PreviousRunsFile/");
-// 		strcat(fileName,PreviousRunFileName);
-// 		strcat(fileName,"/nBodyArt");
-// 		//printf("\n fileName = %s\n", fileName);
+    // Skip the header line
+    char header[256];
+    fgets(header, sizeof(header), file);
 
-// 		inFile = fopen(fileName,"rb");
-// 		if(inFile == NULL)
-// 		{
-// 			printf(" Can't open %s file.\n", fileName);
-// 			exit(0);
-// 		}
-//     }
-// }
+    // Read body information
+    int lastId = -1;
+    for (int i = 0; i < numBodiesFromFile; i++)
+    {
+        Body newBody;
+        int isSolid;
+        float color_x, color_y, color_z, color_w;
+        float pos_x, pos_y, pos_z;
+        float vel_x, vel_y, vel_z;
+        float force_x, force_y, force_z;
+        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+                            &newBody.id,
+                            &isSolid,
+                            &color_x, &color_y, &color_z, &color_w,
+                            &newBody.movement,
+                            &pos_x, &pos_y, &pos_z,
+                            &vel_x, &vel_y, &vel_z,
+                            &force_x, &force_y, &force_z,
+                            &newBody.radius);
+        newBody.isSolid = (bool)isSolid;
+        newBody.color = make_float4(color_x, color_y, color_z, color_w);
+        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+
+        if (result == 17)
+        {
+            // Check for nan values
+            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
+                isnan(newBody.pos.x) || isnan(newBody.pos.y) || isnan(newBody.pos.z) ||
+                isnan(newBody.vel.x) || isnan(newBody.vel.y) || isnan(newBody.vel.z) ||
+                isnan(newBody.force.x) || isnan(newBody.force.y) || isnan(newBody.force.z) ||
+                isnan(newBody.radius))
+            {
+                fprintf(stderr, "Error: Encountered nan value in body %d\n", newBody.id);
+                fclose(file);
+                exit(1);
+            }
+
+            addBody(newBody);
+            lastId = newBody.id;
+            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+                   i, newBody.id, newBody.isSolid, newBody.color.x, newBody.color.y, newBody.color.z, newBody.color.w,
+                   newBody.movement, newBody.pos.x, newBody.pos.y, newBody.pos.z,
+                   newBody.vel.x, newBody.vel.y, newBody.vel.z,
+                   newBody.force.x, newBody.force.y, newBody.force.z,
+                   newBody.radius);
+        }
+        else
+        {
+            fprintf(stderr, "Error: fscanf read %d values instead of 17\n", result);
+            break;
+        }
+    }
+
+    fclose(file);
+    printf("Body information read from %s\n", filename);
+
+    // Update numBodies
+    numBodies = numBodiesFromFile;
+}
+
+void writeBodiesToFile(const char* filename)
+{
+    FILE* file = fopen(filename, "w");
+    if (file == NULL)
+    {
+        fprintf(stderr, "Error: Could not open file %s for writing\n", filename);
+        return;
+    }
+
+	// Write the number of bodies at the end of the file
+    fprintf(file, "Number of bodies: %d\n", numBodies);
+
+
+    fprintf(file, "ID, IsSolid, Color (R, G, B, A), Movement, Position (X, Y, Z), Velocity (X, Y, Z), Force (X, Y, Z), Radius\n");
+    for (int i = 0; i < numBodies; i++)
+    {
+        fprintf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+                bodies[i].id,
+                bodies[i].isSolid,
+                bodies[i].color.x, bodies[i].color.y, bodies[i].color.z, bodies[i].color.w,
+                bodies[i].movement,
+                bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+                bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+                bodies[i].force.x, bodies[i].force.y, bodies[i].force.z,
+                bodies[i].radius);
+    }
+
+
+
+    fclose(file);
+    printf("Body information written to %s\n", filename);
+}
 
 void addBody(Body newBody) 
 {
     // Reallocate memory to accommodate the new body
+	
     if (numBodies >= capacity) //if the new body will exceed the current capacity
 	{
         capacity *= 2; //double the capacity
@@ -220,8 +271,6 @@ void addBody(Body newBody)
 	{
 
 	}
-	
-
 
 
     /// Add the new body to the array
@@ -237,6 +286,32 @@ void addBody(Body newBody)
 void freeBodies() 
 {
     free(bodies);
+}
+
+void setup()
+{
+	allocateMemory();
+    if (PreviousRunToggle == 1)
+    {
+        // Read the previous simulation parameters from the specified file
+        readBodiesFromFile(PreviousRunFile.c_str());
+    }
+    else
+    {
+        // Set up a new simulation
+        setSimulationParameters();
+        allocateMemory();
+        setInitialConditions();
+        zeroOutSystem();
+    }
+
+    DrawTimer = 0;
+    PrintRate = 0;
+    RunTime = 0.0;
+    Trace = 0;
+    Pause = 1;
+    MovieOn = 0;
+    terminalPrint();
 }
 
 void Display()
@@ -381,6 +456,10 @@ void KeyPressed(unsigned char key, int x, int y)
 		terminalPrint();
 		//printf("\n Your selection area = %f times the radius of atrium. \n", HitMultiplier);
 	}
+	if(key == 'k')
+	{
+		writeBodiesToFile("simulationparams");
+	}
 }
 
 void mousePassiveMotionCallback(int x, int y) 
@@ -391,7 +470,7 @@ void mousePassiveMotionCallback(int x, int y)
 		MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
 
     // Print the converted coordinates for debugging
-    printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+    //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
 
 
     // Redraw the scene
@@ -661,6 +740,7 @@ void setInitialConditions()
 	srand((unsigned) time(&t));
 	for(int i = 0; i < numBodies; i++)
 	{
+		bodies[i].id = i;
 		test = 0;
 		while(test == 0)
 		{
@@ -695,8 +775,16 @@ void setInitialConditions()
 				bodies[i].color.z = ((float)rand()/(float)RAND_MAX);
 			}
 		}
-
+		//set the radius of the body
 		bodies[i].radius =((float)rand()/(float)RAND_MAX)* DiameterOfBody/2.0;
+
+		//initialize everything else to zero
+		bodies[i].force.x = 0.0;
+		bodies[i].force.y = 0.0;
+		bodies[i].force.z = 0.0;
+		bodies[i].movement = 0;
+		bodies[i].isSolid = true;
+		
 	}
 }
 
@@ -768,111 +856,172 @@ void zeroOutSystem()
 
 void drawPicture()
 {
-	if(Trace == 0)
-	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}
-	
-	if (NewBodyToggle == 1)
-	{
-		//set mouse to look look like a new body
-		glColor3d(1.0,1.0,1.0);
-		glPushMatrix();
-			glTranslatef(MouseX, MouseY, MouseZ);
-			glutSolidSphere(newBodyRadius*DiameterOfBody/2.0, 20, 20);
-		glPopMatrix();
-	}
+    if (Trace == 0)
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
 
-	for(int i = 0; i < numBodies; i++)
-	{
-		glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
-		glPushMatrix();
-			glTranslatef(bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z);
-			glutSolidSphere(bodies[i].radius, 20, 20);
-		glPopMatrix();
-	}
-	glutSwapBuffers();
-	
-	if(MovieOn == 1)
-	{
-		glReadPixels(0, 0, XWindowSize, YWindowSize, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
-		fwrite(Buffer, sizeof(int)*XWindowSize*YWindowSize, 1, MovieFile);
-	}
+    if (NewBodyToggle == 1)
+    {
+        // Set mouse to look like a new body
+        glColor3d(1.0, 1.0, 1.0);
+        glPushMatrix();
+        glTranslatef(MouseX, MouseY, MouseZ);
+        glutSolidSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
+        glPopMatrix();
+    }
+
+    for (int i = 0; i < numBodies; i++)
+    {
+        glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
+        glPushMatrix();
+        glTranslatef(bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z);
+        glutSolidSphere(bodies[i].radius, 20, 20);
+        glPopMatrix();
+    }
+
+    glutSwapBuffers();
+
+    if (MovieOn == 1)
+    {
+        glReadPixels(0, 0, XWindowSize, YWindowSize, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
+        fwrite(Buffer, sizeof(int) * XWindowSize * YWindowSize, 1, MovieFile);
+    }
 }
 
 void getForces(Body* bodies, float mass, float G, float H, float Epsilon, float drag, float dt, int n)
 {
-    float dx, dy, dz, d2, d;
+	float dx, dy, dz, d2, d;
     float forceMag;
 
     // Initialize forces to zero
-    for(int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        bodies[i].force.x = 0.0;
-        bodies[i].force.y = 0.0;
-        bodies[i].force.z = 0.0;
+        bodies[i].force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
     // Calculate forces
-    for(int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        for(int j = i + 1; j < n; j++)
+        for (int j = i + 1; j < n; j++)
         {
             dx = bodies[j].pos.x - bodies[i].pos.x;
             dy = bodies[j].pos.y - bodies[i].pos.y;
             dz = bodies[j].pos.z - bodies[i].pos.z;
-            d2 = dx*dx + dy*dy + dz*dz + Epsilon;
+            d2 = dx * dx + dy * dy + dz * dz + Epsilon;
             d = sqrt(d2);
-            forceMag = (G*mass*mass)/(d2) - (H*mass*mass)/(d2*d2);
-            bodies[i].force.x += forceMag * dx / d;
-            bodies[i].force.y += forceMag * dy / d;
-            bodies[i].force.z += forceMag * dz / d;
-            bodies[j].force.x -= forceMag * dx / d;
-            bodies[j].force.y -= forceMag * dy / d;
-            bodies[j].force.z -= forceMag * dz / d;
+			if (d < 1e-6) 
+			{
+                fprintf(stderr, "Warning: Small distance in force calculation, skipping\n");
+                continue;
+            }
+            forceMag = (G * mass * mass) / d2 - (H * mass * mass) / (d2 * d2);
+
+            float3 force = make_float3(forceMag * dx / d,
+                                       forceMag * dy / d,
+                                       forceMag * dz / d);
+
+            bodies[i].force.x += force.x;
+            bodies[i].force.y += force.y;
+            bodies[i].force.z += force.z;
+
+            bodies[j].force.x -= force.x;
+            bodies[j].force.y -= force.y;
+            bodies[j].force.z -= force.z;
         }
     }
 
-    // Update positions and velocities
-    for(int i = 0; i < n; i++)
-    {
-        bodies[i].vel.x += ((bodies[i].force.x - drag * bodies[i].vel.x) / mass) * dt;
-        bodies[i].vel.y += ((bodies[i].force.y - drag * bodies[i].vel.y) / mass) * dt;
-        bodies[i].vel.z += ((bodies[i].force.z - drag * bodies[i].vel.z) / mass) * dt;
-
-        bodies[i].pos.x += bodies[i].vel.x * dt;
-        bodies[i].pos.y += bodies[i].vel.y * dt;
-        bodies[i].pos.z += bodies[i].vel.z * dt;
-    }
+	// Check for nan values
+	for (int i = 0; i < n; i++) {
+		if (isnan(bodies[i].color.x) || isnan(bodies[i].color.y) || isnan(bodies[i].color.z) || isnan(bodies[i].color.w) ||
+			isnan(bodies[i].pos.x) || isnan(bodies[i].pos.y) || isnan(bodies[i].pos.z) ||
+			isnan(bodies[i].vel.x) || isnan(bodies[i].vel.y) || isnan(bodies[i].vel.z) ||
+			isnan(bodies[i].force.x) || isnan(bodies[i].force.y) || isnan(bodies[i].force.z) ||
+			isnan(bodies[i].radius))
+		{
+			fprintf(stderr, "Error: Encountered nan value in body %d\n", bodies[i].id);
+			exit(1);
+		}
+	}
+	
 }
 
 void nBody()
 {
-	if(Pause != 1)
-	{	
-		getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
-        
+    if (Pause != 1)
+    {
+        // Print initial positions and velocities
+        for (int i = 0; i < numBodies; i++)
+        {
+            printf("Initial Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
+                   i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+                   bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+                   bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
+        }
+
+        // Calculate forces
+        getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
+
+        // Print positions, velocities, and forces after force calculation
+        for (int i = 0; i < numBodies; i++)
+        {
+            printf("After Force Calculation Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
+                   i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+                   bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+                   bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
+        }
+
+        // Update positions and velocities
+        for (int i = 0; i < numBodies; i++)
+        {
+            bodies[i].vel.x += ((bodies[i].force.x - Drag * bodies[i].vel.x) / MassOfBody) * Dt;
+            bodies[i].vel.y += ((bodies[i].force.y - Drag * bodies[i].vel.y) / MassOfBody) * Dt;
+            bodies[i].vel.z += ((bodies[i].force.z - Drag * bodies[i].vel.z) / MassOfBody) * Dt;
+
+            bodies[i].pos.x += bodies[i].vel.x * Dt;
+            bodies[i].pos.y += bodies[i].vel.y * Dt;
+            bodies[i].pos.z += bodies[i].vel.z * Dt;
+
+            // Check for nan values
+            if (isnan(bodies[i].pos.x) || isnan(bodies[i].pos.y) || isnan(bodies[i].pos.z) ||
+                isnan(bodies[i].vel.x) || isnan(bodies[i].vel.y) || isnan(bodies[i].vel.z) ||
+                isnan(bodies[i].force.x) || isnan(bodies[i].force.y) || isnan(bodies[i].force.z))
+            {
+                fprintf(stderr, "Error: Encountered nan value in body %d during update\n", bodies[i].id);
+                exit(1);
+            }
+        }
+
+        // Print positions and velocities after update
+        for (int i = 0; i < numBodies; i++)
+        {
+            printf("After Update Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
+                   i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+                   bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+                   bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
+        }
+
         DrawTimer++;
-		if(DrawTimer == DrawRate) 
-		{
-			drawPicture();
-			DrawTimer = 0;
-		}
-		
-		PrintTimer++;
-		if(PrintTimer == PrintRate) 
-		{
-			terminalPrint();
-			PrintTimer = 0;
-		}
-		
-		RunTime += Dt; 
-		if(TotalRunTime < RunTime)
-		{
-			printf("\n\n Done\n");
-			exit(0);
-		}
-	}
+        if (DrawTimer == DrawRate)
+        {
+            drawPicture();
+            DrawTimer = 0;
+        }
+
+        PrintTimer++;
+        if (PrintTimer == PrintRate)
+        {
+            terminalPrint();
+            PrintTimer = 0;
+        }
+
+        RunTime += Dt;
+        if (TotalRunTime < RunTime)
+        {
+            printf("\n\n Done\n");
+            exit(0);
+        }
+    }
 }
 
 void terminalPrint()
@@ -893,7 +1042,7 @@ void terminalPrint()
 	BOLD_OFF   "\e[m"
 	*/
 	
-	system("clear");
+	//system("clear");
 	
 	printf("\n\n");
 	printf("\033[0m");
@@ -965,20 +1114,7 @@ void terminalPrint()
 }
 
 
-void setup()
-{	
-	setSimulationParameters();
-	allocateMemory();
-	setInitialConditions();
-	zeroOutSystem();
-    	DrawTimer = 0;
-    	PrintRate = 0;
-	RunTime = 0.0;
-	Trace = 0;
-	Pause = 1;
-	MovieOn = 0;
-	terminalPrint();
-}
+
 
 int main(int argc, char** argv)
 {

@@ -1,0 +1,106 @@
+Starting program: /home/threadtheripper/Documents/GitHub/N-Body_Art_Project/src/nBodyArt 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Hardware watchpoint 2: bodies[0].pos.x
+
+Old value = <unreadable>
+New value = 0
+
+Hardware watchpoint 3: bodies[0].pos.y
+
+Old value = <unreadable>
+New value = 0
+
+Hardware watchpoint 4: bodies[0].pos.z
+
+Old value = <unreadable>
+New value = 0
+allocateMemory () at /home/threadtheripper/Documents/GitHub/N-Body_Art_Project/src/nBodyArt.cu:726
+726	    if (bodies == NULL) 
+Program not restarted.
+731	    printf("Initial memory allocated with capacity: %d\n", capacity);
+732	}
+setup () at /home/threadtheripper/Documents/GitHub/N-Body_Art_Project/src/nBodyArt.cu:294
+294	    if (PreviousRunToggle == 1)
+297	        readBodiesFromFile(PreviousRunFile.c_str());
+
+Hardware watchpoint 3: bodies[0].pos.y
+
+Old value = 0
+New value = -0.934240997
+0x0000555555561fb8 in addBody (newBody=...) at /home/threadtheripper/Documents/GitHub/N-Body_Art_Project/src/nBodyArt.cu:277
+277		bodies[numBodies] = newBody;
+
+Hardware watchpoint 4: bodies[0].pos.z
+
+Old value = 0
+New value = -0.464127004
+0x0000555555561fbc in addBody (newBody=...) at /home/threadtheripper/Documents/GitHub/N-Body_Art_Project/src/nBodyArt.cu:277
+277		bodies[numBodies] = newBody;
+280	    numBodies++;
+283		printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
+284	}
+readBodiesFromFile (filename=0x55555561a090 "workingsimulationparams") at /home/threadtheripper/Documents/GitHub/N-Body_Art_Project/src/nBodyArt.cu:190
+190	            lastId = newBody.id;
+191	            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+152	    for (int i = 0; i < numBodiesFromFile; i++)
+160	        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+169	        newBody.isSolid = (bool)isSolid;
+170	        newBody.color = make_float4(color_x, color_y, color_z, color_w);
+171	        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+172	        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+173	        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+175	        if (result == 17)
+178	            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
+189	            addBody(newBody);
+190	            lastId = newBody.id;
+191	            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+152	    for (int i = 0; i < numBodiesFromFile; i++)
+160	        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+169	        newBody.isSolid = (bool)isSolid;
+170	        newBody.color = make_float4(color_x, color_y, color_z, color_w);
+171	        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+172	        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+173	        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+175	        if (result == 17)
+178	            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
+189	            addBody(newBody);
+190	            lastId = newBody.id;
+191	            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+152	    for (int i = 0; i < numBodiesFromFile; i++)
+160	        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+169	        newBody.isSolid = (bool)isSolid;
+170	        newBody.color = make_float4(color_x, color_y, color_z, color_w);
+171	        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+172	        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+173	        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+175	        if (result == 17)
+178	            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
+189	            addBody(newBody);
+190	            lastId = newBody.id;
+191	            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+152	    for (int i = 0; i < numBodiesFromFile; i++)
+160	        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+169	        newBody.isSolid = (bool)isSolid;
+170	        newBody.color = make_float4(color_x, color_y, color_z, color_w);
+171	        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+172	        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+173	        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+175	        if (result == 17)
+178	            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
+189	            addBody(newBody);
+190	            lastId = newBody.id;
+191	            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+152	    for (int i = 0; i < numBodiesFromFile; i++)
+160	        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+169	        newBody.isSolid = (bool)isSolid;
+170	        newBody.color = make_float4(color_x, color_y, color_z, color_w);
+171	        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+172	        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+173	        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+175	        if (result == 17)
+178	            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
+Continuing.
+[Inferior 1 (process 83859) exited normally]
+Quit
