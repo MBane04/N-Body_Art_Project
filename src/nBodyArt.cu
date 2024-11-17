@@ -370,7 +370,14 @@ void Display()
 
 void idle()
 {
-	nBody();
+    if (NewBodyToggle == 1)
+    {
+        drawPicture();
+    }
+    else
+    {
+        nBody();
+    }
 }
 
 void reshape(int w, int h)
