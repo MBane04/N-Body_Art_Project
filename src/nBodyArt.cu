@@ -104,12 +104,15 @@ void addBody(Body newBody);
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "workingsimulationparams"; // The file name of the previous simulation you want to run.
+int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
+string PreviousRunFile = "simulationparams"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
+int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
+int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
+bool NewBodySolid = true; // 0 if not solid, 1 if solid
 
 
-typedef struct
+typedef struct //stores colors for Starry night
 {
     float4 paris_m;
     float4 manz;
@@ -128,7 +131,7 @@ typedef struct
     float4 astronaut_blue;
 } Colors;
 
-Colors colors = {
+Colors colors = { // assigns values corresponding to the colors in the struct
     {49.0/255.0, 39.0/255.0, 96.0/255.0, 1.0},
     {228.0/255.0, 219.0/255.0, 85.0/255.0, 1.0},
     {65.0/255.0, 74.0/255.0, 76.0/255.0, 1.0},
@@ -146,7 +149,7 @@ Colors colors = {
     {42.0/255.0, 75.0/255.0, 124.0/255.0, 1.0}
 };
 
-float4 getColor(const char* colorName) {
+float4 getColor(const char* colorName) { //to assign colors to the new body, call this function with the color name
     if (strcmp(colorName, "paris_m") == 0) return colors.paris_m;
     if (strcmp(colorName, "manz") == 0) return colors.manz;
     if (strcmp(colorName, "outer_space") == 0) return colors.outer_space;
@@ -204,7 +207,6 @@ void readBodiesFromFile(const char* filename)
     fgets(header, sizeof(header), file);
 
     // Read body information
-    int lastId = -1;
     for (int i = 0; i < numBodiesFromFile; i++)
     {
         Body newBody;
@@ -230,20 +232,7 @@ void readBodiesFromFile(const char* filename)
 
         if (result == 17)
         {
-            // Check for nan values
-            if (isnan(newBody.color.x) || isnan(newBody.color.y) || isnan(newBody.color.z) || isnan(newBody.color.w) ||
-                isnan(newBody.pos.x) || isnan(newBody.pos.y) || isnan(newBody.pos.z) ||
-                isnan(newBody.vel.x) || isnan(newBody.vel.y) || isnan(newBody.vel.z) ||
-                isnan(newBody.force.x) || isnan(newBody.force.y) || isnan(newBody.force.z) ||
-                isnan(newBody.radius))
-            {
-                fprintf(stderr, "Error: Encountered nan value in body %d\n", newBody.id);
-                fclose(file);
-                exit(1);
-            }
-
             addBody(newBody);
-            lastId = newBody.id;
             printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
                    i, newBody.id, newBody.isSolid, newBody.color.x, newBody.color.y, newBody.color.z, newBody.color.w,
                    newBody.movement, newBody.pos.x, newBody.pos.y, newBody.pos.z,
@@ -336,7 +325,7 @@ void addBody(Body newBody)
     numBodies++;
 
 	//for debugging
-	printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
+	//printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
 }
 
 void freeBodies() 
@@ -351,6 +340,8 @@ void setup()
     {
         // Read the previous simulation parameters from the specified file
         readBodiesFromFile(PreviousRunFile.c_str());
+        setSimulationParameters();
+        zeroOutSystem();
     }
     else
     {
@@ -367,7 +358,7 @@ void setup()
     Trace = 0;
     Pause = 1;
     MovieOn = 0;
-    //terminalPrint();
+    terminalPrint();
 }
 
 void Display()
@@ -448,30 +439,30 @@ void KeyPressed(unsigned char key, int x, int y)
         printf("\nw Good Bye\n");
         exit(0);
 	}
-	if(key == 'v') 
-   	{
-        // Toggle the view mode
-        isOrthogonal = !isOrthogonal;
+	// if(key == 'v') //not much need for this anymore
+   	// {
+    //     // Toggle the view mode
+    //     isOrthogonal = !isOrthogonal;
 
-        // Call reshape to update the projection matrix
-        reshape(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+    //     // Call reshape to update the projection matrix
+    //     reshape(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
 
-        // Redraw the scene
-        glutPostRedisplay();
-   	 }
+    //     // Redraw the scene
+    //     glutPostRedisplay();
+   	//  }
 	if(key == 'p')
 	{
 		if(Pause == 1) Pause = 0;
 		else Pause = 1;
 		drawPicture();
-		//terminalPrint();
+		terminalPrint();
 	}
 	if(key == 't') // Turns tracers on and off
 	{
 		if(Trace == 1) Trace = 0;
 		else Trace = 1;
 		drawPicture();
-		//terminalPrint();
+		terminalPrint();
 	}
 	if(key == 'M')  // Movie on/off
 	{
@@ -485,100 +476,91 @@ void KeyPressed(unsigned char key, int x, int y)
 			MovieFlag = 0;
 			movieOff();
 		}
-		//terminalPrint();
+		terminalPrint();
 	}
 	
 	if(key == 'S')  // Screenshot
 	{	
 		screenShot();
-		//terminalPrint();
+		terminalPrint();
 	}
 	if (key == 'n') // Add a new body
 	{
 		if(NewBodyToggle == 0) NewBodyToggle = 1;
 		else NewBodyToggle = 0;
-		//terminalPrint();
+		terminalPrint();
 	}
 	if(key == ']')  
 	{
-		newBodyRadius += 0.005;
-		//terminalPrint();
+		newBodyRadius += 0.01;
+		terminalPrint();
 		//printf("\n Your selection area = %f times the radius of atrium. \n", HitMultiplier);
 	}
 	if(key == '[')
 	{
-		newBodyRadius -= 0.005;
+		newBodyRadius -= 0.01;
 		if(newBodyRadius < 0.0) newBodyRadius = 0.0;
-		//terminalPrint();
+		terminalPrint();
 		//printf("\n Your selection area = %f times the radius of atrium. \n", HitMultiplier);
 	}
-	if(key == 'k')
+	if(key == 's')
 	{
 		writeBodiesToFile("simulationparams");
 	}
+
     if(NewBodyToggle == 1)
     {
-        //colors for starry night
-        if(key == '1')
+        if (key == 'l') // cycle through colors, forward
         {
-            ColorToggle = 1;
+            if (ColorToggle < 15)
+            {
+                ColorToggle++;
+            }
+            else
+            {
+                ColorToggle = 1;
+            }
+            terminalPrint();
         }
-        if(key == '2')
+        if (key == 'k') // cycle through colors, backward
         {
-            ColorToggle = 2;
+            if (ColorToggle > 1)
+            {
+                ColorToggle--;
+            }
+            else
+            {
+                ColorToggle = 15;
+            }
+            terminalPrint();
         }
-        if(key == '3')
+        //set movement pattern
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!CHANGES NEED TO BE MADE LATER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if (key == 'm')
         {
-            ColorToggle = 3;
+            printf("Enter the movement pattern for the new body: ");
+            scanf("%d", &NewBodyMovement);
+            if (NewBodyMovement != 0 && NewBodyMovement != 1) //change this when we actually make new bodies
+            {
+                printf("Invalid movement pattern.\n");
+                NewBodyMovement = 0;
+            }
+            terminalPrint();
         }
-        if(key == '4')
+
+        if(key == 'i')//is the new body solid?
         {
-            ColorToggle = 4;
+            if(NewBodySolid == true)
+            {
+                NewBodySolid = false;
+            }
+            else
+            {
+                NewBodySolid = true;
+            }
+            terminalPrint();
         }
-        if(key == '5')
-        {
-            ColorToggle = 5;
-        }
-        if(key == '6')
-        {
-            ColorToggle = 6;
-        }
-        if(key == '7')
-        {
-            ColorToggle = 7;
-        }
-        if(key == '8')
-        {
-            ColorToggle = 8;
-        }
-        if(key == '9')
-        {
-            ColorToggle = 9;
-        }
-        if(key == '0')
-        {
-            ColorToggle = 10;
-        }
-        if(key == 'z')
-        {
-            ColorToggle = 11;
-        }
-        if(key == 'x')
-        {
-            ColorToggle = 12;
-        }
-        if(key == 'c')
-        {
-            ColorToggle = 13;
-        }
-        if(key == 'v')
-        {
-            ColorToggle = 14;
-        }
-        if(key == 'b')
-        {
-            ColorToggle = 15;
-        }
+       
     }
 }
 
@@ -619,98 +601,94 @@ void mymouse(int button, int state, int x, int y)
                 // Print the converted coordinates for debugging
                 printf("MouseX: %f, MouseY: %f, MouseZ: %f\n", MouseX, MouseY, MouseZ);
 
-                float mass = MassOfBody;
                 Body newBody; //create a new body with the body struct
 
                 // Set the color of the new body based on the ColorToggle
 
-                // float4 paris_m = (49.0/255.0, 39.0/255.0, 96.0/255.0);
-                // float4 manz =(228.0/255.0, 219.0/255.0, 85.0/255.0);
-                // float4 outer_space =(65.0/255.0, 74.0/255.0, 76.0/255.0);
-                // float4 curious_blue = (21.18/255.0, 44.31/255.0, 77.65/255.0);
-                // float4 tahuna_sands = (93.0/255.0, 94.0/255.0, 78.0/255.0);
-                // float4 livid_brown = (49.0/255.0, 42.0/255.0, 41.0/255.0);
-                // float4 neptune = (49.0/255.0, 72.0/255.0, 73.0/255.0);
-                // float4 lochmara = (50.0/255.0, 100.0/255.0, 150.0/255.0);
-                // float4 regal_blue = (14.0/255.0, 54.0/255.0, 87.0/255.0);
-                // float4 vis_vis = (249.0/255.0, 228.0/255.0, 150.0/255.0);
-                // float4 light_curious_blue = (15.0/255.0, 59.0/255.0, 82.0/255.0);
-                // float4 ironside_grey = (40.0/255.0, 40.0/255.0, 38.0/255.0);
-                // float4 yellow = (244.0/255.0, 179.0/255.0, 5.0/255.0);
-                // float4 deco = (198.0/255.0, 202.0/255.0, 116.0/255.0);
-                // float4 astronaut_blue = (42.0/255.0, 75.0/255.0, 124.0/255.0);
-
                 if(ColorToggle == 1)
                 {
                     newBody.color = getColor("paris_m");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 2)
                 {
                     newBody.color = getColor("manz");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 3)
                 {
                     newBody.color = getColor("outer_space");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 4)
                 {
                     newBody.color = getColor("curious_blue");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 5)
                 {
                     newBody.color = getColor("tahuna_sands");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 6)
                 {
                     newBody.color = getColor("livid_brown");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 7)
                 {
                     newBody.color = getColor("neptune");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 8)
                 {
                     newBody.color = getColor("lochmara");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 9)
                 {
                     newBody.color = getColor("regal_blue");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 10)
                 {
                     newBody.color = getColor("vis_vis");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 11)
                 {
                     newBody.color = getColor("light_curious_blue");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 12)
                 {
                     newBody.color = getColor("ironside_grey");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 13)
                 {
                     newBody.color = getColor("yellow");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 14)
                 {
                     newBody.color = getColor("deco");
+                    HotkeyPrint = 0;
                 }
                 else if(ColorToggle == 15)
                 {
                     newBody.color = getColor("astronaut_blue");
+                    HotkeyPrint = 0;
                 }
                 else
                 {
-                    newBody.color = (float4){(float)rand()/(float)RAND_MAX, (float)rand()/(float)RAND_MAX, (float)rand()/(float)RAND_MAX, 1.0f};
-                    //color invalid, assign random color
-                    printf("Invalid color selection. Assigning random color.\n");
+                    newBody.color =  {1.0f, 1.0f, 1.0f, 1.0f}; //default
                 }
 
                 //assign all the properties of the new body
                 newBody.id = index;
                 newBody.isSolid = true;
-                newBody.movement = 0;
+                newBody.movement = NewBodyMovement;
                 newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
                 newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
 				newBody.radius = newBodyRadius*DiameterOfBody/2.0;
@@ -891,7 +869,7 @@ void screenShot()
 
 void setSimulationParameters()
 {
-	numBodies = 16;
+	//numBodies = 16;
 
 	TotalRunTime = 10000.0;
 
@@ -1175,8 +1153,8 @@ void drawPicture()
         }
         else
         {
-            //color random
-            glColor3d(mouseColor.x, mouseColor.y, mouseColor.z);
+            //color white
+            glColor3d(1.0, 1.0, 1.0);
         }
         glPushMatrix();
         glTranslatef(MouseX, MouseY, MouseZ);
@@ -1264,25 +1242,25 @@ void nBody()
     if (Pause != 1)
     {
         // Print initial positions and velocities
-        for (int i = 0; i < numBodies; i++)
-        {
-            printf("Initial Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
-                   i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
-                   bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
-                   bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
-        }
+        // for (int i = 0; i < numBodies; i++)
+        // {
+        //     printf("Initial Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
+        //            i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+        //            bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+        //            bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
+        // }
 
         // Calculate forces
         getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
 
         // Print positions, velocities, and forces after force calculation
-        for (int i = 0; i < numBodies; i++)
-        {
-            printf("After Force Calculation Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
-                   i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
-                   bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
-                   bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
-        }
+        // for (int i = 0; i < numBodies; i++)
+        // {
+        //     printf("After Force Calculation Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
+        //            i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+        //            bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+        //            bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
+        // }
 
         // Update positions and velocities
         for (int i = 0; i < numBodies; i++)
@@ -1306,13 +1284,13 @@ void nBody()
         }
 
         // Print positions and velocities after update
-        for (int i = 0; i < numBodies; i++)
-        {
-            printf("After Update Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
-                   i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
-                   bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
-                   bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
-        }
+        // for (int i = 0; i < numBodies; i++)
+        // {
+        //     printf("After Update Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
+        //            i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
+        //            bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
+        //            bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
+        // }
 
         DrawTimer++;
         if (DrawTimer == DrawRate)
@@ -1324,7 +1302,7 @@ void nBody()
         PrintTimer++;
         if (PrintTimer == PrintRate)
         {
-            ////terminalPrint();
+            terminalPrint();
             PrintTimer = 0;
         }
 
@@ -1355,8 +1333,17 @@ void terminalPrint()
 	BOLD_OFF   "\e[m"
 	*/
 	
-	//system("clear");
+	system("clear");
 	
+    printf("\n");
+	printf("\n S: Screenshot");
+	
+	printf("\n");
+	printf("\n q: Terminates the simulation");
+
+    printf("\n");
+    printf("\n s: Save this run");
+
 	printf("\n\n");
 	printf("\033[0m");
 	printf(" p: Pause on/off toggle --> ");
@@ -1382,18 +1369,18 @@ void terminalPrint()
 	{
 		printf("\e[1m" " \033[0;32mOff\n" "\e[m");
 	}
-	printf("\n");
-	printf("\033[0m");
-	printf(" v: Toggle view (Perspective/Orthogonal) --> ");
-	printf(" Current View: ");
-	if (isOrthogonal) 
-	{
-		printf("\e[1m" " \033[0;32mOrthogonal\n" "\e[m");
-	}
-	else 
-	{
-		printf("\e[1m" " \033[0;31mDefault\n" "\e[m");
-	}
+	//printf("\n");
+	//printf("\033[0m");
+	//printf(" v: Toggle view (Perspective/Orthogonal) --> ");
+	//printf(" Current View: ");
+	// if (isOrthogonal) 
+	// {
+	// 	printf("\e[1m" " \033[0;32mOrthogonal\n" "\e[m");
+	// }
+	// else 
+	// {
+	// 	printf("\e[1m" " \033[0;31mDefault\n" "\e[m");
+	// }
 	printf("\n M: Video On/Off toggle --> ");
 	if (MovieFlag == 0) 
 	{
@@ -1416,14 +1403,134 @@ void terminalPrint()
 		printf("\033[0;32m");
 		printf(BOLD_ON "Add Body" BOLD_OFF);
 	}
-	
-	printf("\n");
-	printf("\n S: Screenshot");
-	
-	printf("\n");
-	printf("\n q: Terminates the simulation");
-	
-	printf("\n");
+	//controls for body placement
+    if(NewBodyToggle == 1)
+    {
+        printf("\n");
+        printf("\033[0m");
+        printf(" [/]: Change radius of new body backwards/forwards\n");
+
+        printf("\n");
+        printf("\033[0m");
+        printf(" k/l: Change color of new body backwards/forwards\n");
+        printf(" Current Color: ");
+        if (ColorToggle == 1)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Paris M" BOLD_OFF);
+        }
+        else if (ColorToggle == 2)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Manz" BOLD_OFF);
+        }
+        else if (ColorToggle == 3)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Outer Space" BOLD_OFF);
+        }
+        else if (ColorToggle == 4)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Curious Blue" BOLD_OFF);
+        }
+        else if (ColorToggle == 5)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Tahuna Sands" BOLD_OFF);
+        }
+        else if (ColorToggle == 6)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Livid Brown" BOLD_OFF);
+        }
+        else if (ColorToggle == 7)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Neptune" BOLD_OFF);
+        }
+        else if (ColorToggle == 8)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Lochmara" BOLD_OFF);
+        }
+        else if (ColorToggle == 9)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Regal Blue" BOLD_OFF);
+        }
+        else if (ColorToggle == 10)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Vis Vis" BOLD_OFF);
+        }
+        else if (ColorToggle == 11)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Light Curious Blue" BOLD_OFF);
+        }
+        else if (ColorToggle == 12)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Ironside Grey" BOLD_OFF);
+        }
+        else if (ColorToggle == 13)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Yellow" BOLD_OFF);
+        }
+        else if (ColorToggle == 14)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Deco" BOLD_OFF);
+        }
+        else if (ColorToggle == 15)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Astronaut Blue" BOLD_OFF);
+        }
+        else
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "DEFAULT" BOLD_OFF);
+        }
+
+        printf("\n");
+        printf("\033[0m");
+        printf("m : set movement preset --> Current Preset:");
+        if(NewBodyMovement == 0)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Random" BOLD_OFF);
+        }
+        else if(NewBodyMovement == 1)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Circle" BOLD_OFF);
+        }
+        else
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "DEFAULT" BOLD_OFF);
+        }
+
+        printf("\n");
+        printf("\033[0m");
+        printf(" i: Body Solidity On/Off Toggle --> ");
+        if (!NewBodySolid)
+        {
+            printf("\033[0;31m");
+            printf(BOLD_ON "Solid Off" BOLD_OFF);
+        }
+        else
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Solid On" BOLD_OFF);
+        }
+
+
+    }
+    printf("\n");
 }
 
 
@@ -1495,7 +1602,7 @@ int main(int argc, char** argv)
     glutReshapeFunc(reshape);
     glutKeyboardFunc(KeyPressed);
     glutIdleFunc(idle);
-    //terminalPrint();
+    terminalPrint();
     glutMainLoop();
 
     // Cleanup resources
