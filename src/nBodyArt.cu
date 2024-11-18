@@ -105,7 +105,7 @@ void addBody(Body newBody);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "simulationparams"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "awesomepicture"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -878,7 +878,7 @@ void screenShot()
 
 void setSimulationParameters()
 {
-	//numBodies = 16;
+    if(PreviousRunToggle  == 0) numBodies = 0; //start with no bodies, a blank canvas
 
 	TotalRunTime = 10000.0;
 
