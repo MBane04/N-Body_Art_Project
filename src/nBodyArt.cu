@@ -105,7 +105,7 @@ void addBody(Body newBody);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "awesomepicture"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "giantballindamiddle"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -175,7 +175,11 @@ int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 
 void readBodiesFromFile(const char* filename)
 {
-    FILE* file = fopen(filename, "r");
+    //append the file directory to the file
+    string fileDir = "../PreviousRuns/";
+    fileDir.append(filename); //now fileDir = "/PreviousRuns/filename"
+
+    FILE* file = fopen(fileDir.c_str(), "r");
     if (file == NULL)
     {
         fprintf(stderr, "Error: Could not open file %s for reading\n", filename);
@@ -256,7 +260,10 @@ void readBodiesFromFile(const char* filename)
 
 void writeBodiesToFile(const char* filename)
 {
-    FILE* file = fopen(filename, "w");
+    string fileDir = "../PreviousRuns/";
+    fileDir.append(filename); //now fileDir = "/PreviousRuns/filename"
+
+    FILE* file = fopen(fileDir.c_str(), "w");
     if (file == NULL)
     {
         fprintf(stderr, "Error: Could not open file %s for writing\n", filename);
@@ -514,7 +521,10 @@ void KeyPressed(unsigned char key, int x, int y)
 	}
 	if(key == 's')
 	{
-		writeBodiesToFile("simulationparams");
+        printf("Enter the file name to save this run to: ");
+        char filename[256];
+        scanf("%s", filename);
+        writeBodiesToFile(filename);
 	}
 
     if(NewBodyToggle == 1)
@@ -1052,23 +1062,6 @@ void drawPicture()
     if (NewBodyToggle == 1)
     {
         float4 mouseColor;
-        // Set mouse to look like a new body
-
-        // float4 paris_m = (49.0/255.0, 39.0/255.0, 96.0/255.0);
-        // float4 manz =(228.0/255.0, 219.0/255.0, 85.0/255.0);
-        // float4 outer_space =(65.0/255.0, 74.0/255.0, 76.0/255.0);
-        // float4 curious_blue = (21.18/255.0, 44.31/255.0, 77.65/255.0);
-        // float4 tahuna_sands = (93.0/255.0, 94.0/255.0, 78.0/255.0);
-        // float4 livid_brown = (49.0/255.0, 42.0/255.0, 41.0/255.0);
-        // float4 neptune = (49.0/255.0, 72.0/255.0, 73.0/255.0);
-        // float4 lochmara = (50.0/255.0, 100.0/255.0, 150.0/255.0);
-        // float4 regal_blue = (14.0/255.0, 54.0/255.0, 87.0/255.0);
-        // float4 vis_vis = (249.0/255.0, 228.0/255.0, 150.0/255.0);
-        // float4 light_curious_blue = (15.0/255.0, 59.0/255.0, 82.0/255.0);
-        // float4 ironside_grey = (40.0/255.0, 40.0/255.0, 38.0/255.0);
-        // float4 yellow = (244.0/255.0, 179.0/255.0, 5.0/255.0);
-        // float4 deco = (198.0/255.0, 202.0/255.0, 116.0/255.0);
-        // float4 astronaut_blue = (42.0/255.0, 75.0/255.0, 124.0/255.0);
 
         if (ColorToggle == 1)
         {
@@ -1544,7 +1537,7 @@ void terminalPrint()
         else if(NewBodyMovement == 1)
         {
             printf("\033[0;32m");
-            printf(BOLD_ON "Circle" BOLD_OFF);
+            printf(BOLD_ON "Still" BOLD_OFF);
         }
         else
         {
