@@ -53,6 +53,7 @@ int MovieFlag;
 int Trace;
 float MouseX, MouseY, MouseZ;
 float newBodyRadius = 0.1;
+int DrawLayer = 0;
 
 float initialMouseX, initialMouseY;
 
@@ -435,7 +436,7 @@ void addBodyAtPosition(float x, float y)
     }
 
     newBody.id = numBodies;
-    newBody.pos = make_float4(x, y, 0.0f, 1.0f);
+    newBody.pos = make_float4(x, y, 0.0 + DrawLayer/100.0, 1.0f);
     newBody.vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     newBody.force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     newBody.radius = newBodyRadius *DiameterOfBody/2.0f;
@@ -763,6 +764,21 @@ void KeyPressed(unsigned char key, int x, int y)
             }
             terminalPrint();
         }
+
+        //add DrawLayer so you can decide what appears on top of what
+        if(key == 'u')
+        {
+            DrawLayer++;
+            drawPicture();
+            terminalPrint();
+        }
+        if(key == 'y')
+        {
+            DrawLayer--;
+            drawPicture();
+            terminalPrint();
+        }
+
        
     }
 }
@@ -907,7 +923,7 @@ void mymouse(int button, int state, int x, int y)
                     newBody.id = index;
                     newBody.isSolid = true;
                     newBody.movement = NewBodyMovement;
-                    newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
+                    newBody.pos = {MouseX, MouseY, MouseZ + DrawLayer/100.0f, 1.0f}; // Directly assign values to float4
                     newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
                     newBody.radius = newBodyRadius * DiameterOfBody/2.0f;
 
@@ -1382,7 +1398,7 @@ void drawPicture()
             glColor3d(1.0, 1.0, 1.0);
         }
         glPushMatrix();
-        glTranslatef(MouseX, MouseY, MouseZ);
+        glTranslatef(MouseX, MouseY, MouseZ + DrawLayer/100.0f);
         glutSolidSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
         glPopMatrix();
     }
@@ -1419,60 +1435,65 @@ void getForces(Body* bodies, float mass, float G, float H, float Epsilon, float 
     {
         bodies[i].force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
-
+    
     // Calculate forces
     for (int i = 0; i < n; i++)
     {
-        for (int j = i + 1; j < n; j++)
+        if(bodies[i].movement != 1) //if the body is not still (movement 1 is still)
         {
-            dx = bodies[j].pos.x - bodies[i].pos.x;
-            dy = bodies[j].pos.y - bodies[i].pos.y;
-            dz = bodies[j].pos.z - bodies[i].pos.z;
-            d2 = dx * dx + dy * dy + dz * dz + Epsilon;
-            d = sqrt(d2);
-			if (d < 1e-6) 
-			{
-                fprintf(stderr, "Warning: Small distance in force calculation, skipping\n");
-                continue;
-            }
-            //forceMag = (G * mass * mass) / d2 - (H * mass * mass) / (d2 * d2); // gravitational force
-            forceMag = 0.0; //No force between bodies. Each body acts individually.
 
-            float3 force = make_float3(forceMag * dx / d,
-                                       forceMag * dy / d,
-                                       forceMag * dz / d);
-
-            if(bodies[i].isSolid ^ bodies[j].isSolid) //bitwise XOR. If one is solid and the other is not, and only then, do the following.
+        
+            for (int j = i + 1; j < n; j++)
             {
-                float combinedDiamter = bodies[i].radius + bodies[j].radius;
-                if(d < combinedDiamter) //if the balls touch. i.e if the distance betweeen < both radii
-			    {
-                    
-                    dvx = bodies[j].vel.x - bodies[i].vel.x;
-                    dvy = bodies[j].vel.y - bodies[i].vel.y;
-                    dvz = bodies[j].vel.z - bodies[i].vel.z;
-                    inOut = dx*dvx + dy*dvy + dz*dvz;
-                    if(inOut < 0.0) forceMag = kSphere*(combinedDiamter - d); // If inOut is negative the sphere are converging.
-                    else forceMag = kSphereReduction*kSphere*(combinedDiamter - d); // If inOut is positive the sphere are diverging.
-                    
-                    // Doling out the force in the proper perfortions using unit vectors.
-                    bodies[i].force.x -= forceMag*(dx/d);
-                    bodies[i].force.y -= forceMag*(dy/d);
-                    bodies[i].force.y -= forceMag*(dz/d);
-                    // A force on me causes the opposite force on you. 
-                    bodies[j].force.x += forceMag*(dx/d);
-                    bodies[j].force.y += forceMag*(dy/d);
-                    bodies[j].force.z += forceMag*(dz/d);
+                dx = bodies[j].pos.x - bodies[i].pos.x;
+                dy = bodies[j].pos.y - bodies[i].pos.y;
+                dz = bodies[j].pos.z - bodies[i].pos.z;
+                d2 = dx * dx + dy * dy + dz * dz + Epsilon;
+                d = sqrt(d2);
+                if (d < 1e-6) 
+                {
+                    fprintf(stderr, "Warning: Small distance in force calculation, skipping\n");
+                    continue;
                 }
+                //forceMag = (G * mass * mass) / d2 - (H * mass * mass) / (d2 * d2); // gravitational force
+                forceMag = 0.0; //No force between bodies. Each body acts individually.
+
+                float3 force = make_float3(forceMag * dx / d,
+                                        forceMag * dy / d,
+                                        forceMag * dz / d);
+
+                if(bodies[i].isSolid ^ bodies[j].isSolid) //bitwise XOR. If one is solid and the other is not, and only then, do the following.
+                {
+                    float combinedDiamter = bodies[i].radius + bodies[j].radius;
+                    if(d < combinedDiamter) //if the balls touch. i.e if the distance betweeen < both radii
+                    {
+                        
+                        dvx = bodies[j].vel.x - bodies[i].vel.x;
+                        dvy = bodies[j].vel.y - bodies[i].vel.y;
+                        dvz = bodies[j].vel.z - bodies[i].vel.z;
+                        inOut = dx*dvx + dy*dvy + dz*dvz;
+                        if(inOut < 0.0) forceMag = kSphere*(combinedDiamter - d); // If inOut is negative the sphere are converging.
+                        else forceMag = kSphereReduction*kSphere*(combinedDiamter - d); // If inOut is positive the sphere are diverging.
+                        
+                        // Doling out the force in the proper perfortions using unit vectors.
+                        bodies[i].force.x -= forceMag*(dx/d);
+                        bodies[i].force.y -= forceMag*(dy/d);
+                        bodies[i].force.y -= forceMag*(dz/d);
+                        // A force on me causes the opposite force on you. 
+                        bodies[j].force.x += forceMag*(dx/d);
+                        bodies[j].force.y += forceMag*(dy/d);
+                        bodies[j].force.z += forceMag*(dz/d);
+                    }
+                }
+
+                bodies[i].force.x += force.x;
+                bodies[i].force.y += force.y;
+                bodies[i].force.z += force.z;
+
+                bodies[j].force.x -= force.x;
+                bodies[j].force.y -= force.y;
+                bodies[j].force.z -= force.z;
             }
-
-            bodies[i].force.x += force.x;
-            bodies[i].force.y += force.y;
-            bodies[i].force.z += force.z;
-
-            bodies[j].force.x -= force.x;
-            bodies[j].force.y -= force.y;
-            bodies[j].force.z -= force.z;
         }
     }
 
@@ -1811,6 +1832,10 @@ void terminalPrint()
             printf("\033[0;32m");
             printf(BOLD_ON "On" BOLD_OFF);
         }
+
+        printf("\n");
+        printf("\033[0m");
+        printf("y/u: decrease/increase layer  --> Current Layer: %d", DrawLayer);
 
     }
     printf("\n");
