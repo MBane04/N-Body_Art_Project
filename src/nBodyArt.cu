@@ -1731,7 +1731,7 @@ int main(int argc, char** argv)
     glLoadIdentity();
     glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
     glMatrixMode(GL_MODELVIEW);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
 
     GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
     GLfloat light_ambient[] = {0.0, 0.0, 0.0, 1.0};
@@ -1749,9 +1749,9 @@ int main(int argc, char** argv)
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_COLOR_MATERIAL);
+    glDisable(GL_LIGHTING); //for lighting replace this and the next 2 lines with glEnable();
+    glDisable(GL_LIGHT0);
+    glDisable(GL_COLOR_MATERIAL);
     glEnable(GL_DEPTH_TEST);
 
     glutPassiveMotionFunc(mousePassiveMotionCallback);
