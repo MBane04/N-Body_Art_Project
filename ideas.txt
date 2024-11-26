@@ -43,3 +43,6 @@ formula for a circle centered at (h,k) with a radius of r, could use for stars
 
 Cos/Sin functions with a long period for waves of sky? Disappear and make other do a spiral once they reach a certain spot?
 Can make balls disappear by sending them away with the z-axis
+
+make balls move to give flow to the image
+draw outline in one file

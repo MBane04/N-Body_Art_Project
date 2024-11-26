@@ -52,7 +52,9 @@ int MovieOn;
 int MovieFlag;
 int Trace;
 float MouseX, MouseY, MouseZ;
-float newBodyRadius = 1.0;
+float newBodyRadius = 0.1;
+bool isDragging = false;
+float initialMouseX, initialMouseY;
 
 // Window globals
 static int Window;
@@ -337,6 +339,110 @@ void addBody(Body newBody)
 	//printf("Body %d added at (%f, %f, %f) with velocity (%f, %f, %f)\n", newBody.id, newBody.pos.x, newBody.pos.y, newBody.pos.z, newBody.vel.x, newBody.vel.y, newBody.vel.z);
 }
 
+void screenToWorld(int x, int y, float* worldX, float* worldY)
+{
+    *worldX = (float)x / XWindowSize * 2.0f - 1.0f;
+    *worldY = 1.0f - (float)y / YWindowSize * 2.0f;
+    printf("Converted screen (%d, %d) to world (%f, %f)\n", x, y, *worldX, *worldY); // Debugging statement
+}
+
+void addBodyAtPosition(float x, float y)
+{
+
+    Body newBody;
+
+    if (ColorToggle == 1)
+    {
+        newBody.color = getColor("paris_m");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 2)
+    {
+        newBody.color = getColor("manz");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 3)
+    {
+        newBody.color = getColor("outer_space");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 4)
+    {
+        newBody.color = getColor("curious_blue");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 5)
+    {
+        newBody.color = getColor("tahuna_sands");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 6)
+    {
+        newBody.color = getColor("livid_brown");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 7)
+    {
+        newBody.color = getColor("neptune");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 8)
+    {
+        newBody.color = getColor("lochmara");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 9)
+    {
+        newBody.color = getColor("regal_blue");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 10)
+    {
+        newBody.color = getColor("vis_vis");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 11)
+    {
+        newBody.color = getColor("light_curious_blue");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 12)
+    {
+        newBody.color = getColor("ironside_grey");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 13)
+    {
+        newBody.color = getColor("yellow");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 14)
+    {
+        newBody.color = getColor("deco");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 15)
+    {
+        newBody.color = getColor("astronaut_blue");
+        HotkeyPrint = 0;
+    }
+    else
+    {
+        newBody.color = {1.0f, 1.0f, 1.0f, 1.0f}; // default
+    }
+
+    newBody.id = numBodies;
+    newBody.pos = make_float4(x, y, 0.0f, 1.0f);
+    newBody.vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    newBody.force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    newBody.radius = newBodyRadius *DiameterOfBody/2.0f;
+    newBody.isSolid = NewBodySolid;
+    newBody.movement = NewBodyMovement;
+
+    addBody(newBody);
+    printf("Added body at (%f, %f)\n", x, y); // Debugging statement
+}
+
 void freeBodies() 
 {
     free(bodies);
@@ -586,12 +692,15 @@ void KeyPressed(unsigned char key, int x, int y)
 void mousePassiveMotionCallback(int x, int y) 
 {
 
-	// Convert window coordinates to OpenGL coordinates
-		MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
-		MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
-
     // Print the converted coordinates for debugging
     //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+    MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
+	MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+    MouseZ = 0.0f;
+    if (isDragging)
+    {
+        addBodyAtPosition(MouseX, MouseY);
+    }
 
 
     // Redraw the scene
@@ -710,14 +819,32 @@ void mymouse(int button, int state, int x, int y)
                 newBody.movement = NewBodyMovement;
                 newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
                 newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
-				newBody.radius = newBodyRadius*DiameterOfBody/2.0;
+				newBody.radius = newBodyRadius * DiameterOfBody/2.0f;
 
                 addBody(newBody);
 			}
 		}
 		else if(button == GLUT_RIGHT_BUTTON) // Right Mouse button down
 		{
-			// Do stuff in here if you choose to when the right mouse button is pressed.
+            if (state == GLUT_DOWN)
+            {
+                //make it a toggle
+                if(isDragging == false)
+                {
+                    isDragging = true;
+                    initialMouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
+                    initialMouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+                }
+                else
+                {
+                    isDragging = false;
+                }
+            }
+            else if (state == GLUT_UP)
+            {
+                isDragging = false;
+                printf("Mouse up at (%f, %f)\n", MouseX, MouseY); // Debugging statement
+            }
 		}
 		else if(button == GLUT_MIDDLE_BUTTON)
 		{
@@ -1604,7 +1731,7 @@ int main(int argc, char** argv)
     glLoadIdentity();
     glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
     glMatrixMode(GL_MODELVIEW);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
 
     GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
     GLfloat light_ambient[] = {0.0, 0.0, 0.0, 1.0};
@@ -1622,9 +1749,9 @@ int main(int argc, char** argv)
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_COLOR_MATERIAL);
+    glDisable(GL_LIGHTING); //for lighting replace this and the next 2 lines with glEnable();
+    glDisable(GL_LIGHT0);
+    glDisable(GL_COLOR_MATERIAL);
     glEnable(GL_DEPTH_TEST);
 
     glutPassiveMotionFunc(mousePassiveMotionCallback);
