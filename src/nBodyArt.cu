@@ -108,7 +108,7 @@ void addBody(Body newBody);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "awesomepicture"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "GODZILLLLLLLAAAAAAAA"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -1496,19 +1496,6 @@ void getForces(Body* bodies, float mass, float G, float H, float Epsilon, float 
             }
         }
     }
-
-	// Check for nan values
-	for (int i = 0; i < n; i++) {
-		if (isnan(bodies[i].color.x) || isnan(bodies[i].color.y) || isnan(bodies[i].color.z) || isnan(bodies[i].color.w) ||
-			isnan(bodies[i].pos.x) || isnan(bodies[i].pos.y) || isnan(bodies[i].pos.z) ||
-			isnan(bodies[i].vel.x) || isnan(bodies[i].vel.y) || isnan(bodies[i].vel.z) ||
-			isnan(bodies[i].force.x) || isnan(bodies[i].force.y) || isnan(bodies[i].force.z) ||
-			isnan(bodies[i].radius))
-		{
-			fprintf(stderr, "Error: Encountered nan value in body %d\n", bodies[i].id);
-			exit(1);
-		}
-	}
 	
 }
 
@@ -1526,7 +1513,7 @@ void nBody()
         // }
 
         // Calculate forces
-        getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
+        //getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
 
         // Print positions, velocities, and forces after force calculation
         // for (int i = 0; i < numBodies; i++)
@@ -1547,15 +1534,6 @@ void nBody()
             bodies[i].pos.x += bodies[i].vel.x * Dt;
             bodies[i].pos.y += bodies[i].vel.y * Dt;
             bodies[i].pos.z += bodies[i].vel.z * Dt;
-
-            // Check for nan values
-            if (isnan(bodies[i].pos.x) || isnan(bodies[i].pos.y) || isnan(bodies[i].pos.z) ||
-                isnan(bodies[i].vel.x) || isnan(bodies[i].vel.y) || isnan(bodies[i].vel.z) ||
-                isnan(bodies[i].force.x) || isnan(bodies[i].force.y) || isnan(bodies[i].force.z))
-            {
-                fprintf(stderr, "Error: Encountered nan value in body %d during update\n", bodies[i].id);
-                // exit(1);
-            }
         }
 
         // Print positions and velocities after update
