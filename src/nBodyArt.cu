@@ -13,6 +13,8 @@
 #include <cuda.h>
 #include <signal.h>
 #include <cmath>
+#include <SOIL/SOIL.h>
+
 using namespace std;
 
 FILE* ffmpeg;
@@ -54,6 +56,7 @@ int Trace;
 float MouseX, MouseY, MouseZ;
 float newBodyRadius = 0.1;
 int DrawLayer = 0;
+GLuint backgroundTexture;
 
 float initialMouseX, initialMouseY;
 
@@ -107,8 +110,8 @@ void addBody(Body newBody);
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "GODZILLLLLLLAAAAAAAA"; // The file name of the previous simulation you want to run.
+int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
+string PreviousRunFile = "BENCHMARKTEST"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -116,6 +119,7 @@ bool NewBodySolid = true; // 0 if not solid, 1 if solid
 bool IsDragging = false;
 bool GridOn = true;
 bool EraseMode = false;
+bool BackgroundToggle = true;
 
 
 typedef struct //stores colors for Starry night
@@ -712,6 +716,22 @@ void KeyPressed(unsigned char key, int x, int y)
         }
     }
 
+    if(key == 'b')
+    {
+        if(BackgroundToggle)
+        {
+            BackgroundToggle = false;
+            drawPicture();
+            terminalPrint();
+        }
+        else
+        {
+            BackgroundToggle = true;
+            drawPicture();
+            terminalPrint();
+        }
+    }
+
     if(NewBodyToggle == 1)
     {
         if (key == 'l') // cycle through colors, forward
@@ -982,6 +1002,38 @@ void mymouse(int button, int state, int x, int y)
 	//glutPostRedisplay();
 }
 
+void loadBackgroundImage(const char* filename)
+{
+    backgroundTexture = SOIL_load_OGL_texture(
+        filename,
+        SOIL_LOAD_AUTO,
+        SOIL_CREATE_NEW_ID,
+        SOIL_FLAG_INVERT_Y
+    );
+
+    if (backgroundTexture == 0)
+    {
+        printf("SOIL loading error: '%s'\n", SOIL_last_result());
+    }
+}
+
+void renderBackground()
+{
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, backgroundTexture);
+
+    // Calculate aspect ratio
+    float windowAspect = (float)XWindowSize / (float)YWindowSize;
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-windowAspect, -1.0f, -1.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(windowAspect, -1.0f, -1.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(windowAspect, 1.0f, -1.0f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-windowAspect, 1.0f, -1.0f);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+}
 
 string getTimeStamp()
 {
@@ -1291,6 +1343,18 @@ void drawPicture()
     if (Trace == 0)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    if (backgroundTexture != 0)
+    {
+        if(BackgroundToggle)
+        {
+            renderBackground();
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
     }
 
     if(GridOn)
@@ -1647,7 +1711,7 @@ void terminalPrint()
 	}
     printf("\n");
     printf("\033[0m");
-    printf("g: Grid On/Off Toggle --> ");
+    printf(" g: Grid On/Off Toggle --> ");
     if (GridOn)
     {
         printf("\033[0;32m");
@@ -1658,6 +1722,21 @@ void terminalPrint()
         printf("\033[0;31m");
         printf(BOLD_ON "Grid Off" BOLD_OFF);
     }
+
+    printf("\n");
+    printf("\033[0m");
+    printf(" b: Background On/Off Toggle --> ");
+    if (BackgroundToggle)
+    {
+        printf("\033[0;32m");
+        printf(BOLD_ON "Background On" BOLD_OFF);
+    }
+    else
+    {
+        printf("\033[0;31m");
+        printf(BOLD_ON "Background Off" BOLD_OFF);
+    }
+
 
 
 	printf("\n n: Simulaton Mode Add View/Add Body Toggle --> Mode:");
@@ -1860,6 +1939,7 @@ int main(int argc, char** argv)
     glFrustum(-0.2, 0.2, -0.2, 0.2, Near, Far);
     glMatrixMode(GL_MODELVIEW);
     glClearColor(1.0, 1.0, 1.0, 1.0);
+    loadBackgroundImage("../starry-king-of-the-monsters-hdtv.jpg");
 
     GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
     GLfloat light_ambient[] = {0.0, 0.0, 0.0, 1.0};

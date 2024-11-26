@@ -4,7 +4,7 @@
 
 cd src
 
-nvcc nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL
+nvcc nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL -lSOIL
 
 mv nBodyArt ../Executables
 
