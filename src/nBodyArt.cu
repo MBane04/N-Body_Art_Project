@@ -53,7 +53,7 @@ int MovieFlag;
 int Trace;
 float MouseX, MouseY, MouseZ;
 float newBodyRadius = 0.1;
-bool isDragging = false;
+
 float initialMouseX, initialMouseY;
 
 // Window globals
@@ -107,11 +107,14 @@ void addBody(Body newBody);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "giantballindamiddle"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "awesomepicture"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
 bool NewBodySolid = true; // 0 if not solid, 1 if solid
+bool IsDragging = false;
+bool GridOn = true;
+bool EraseMode = false;
 
 
 typedef struct //stores colors for Starry night
@@ -443,9 +446,56 @@ void addBodyAtPosition(float x, float y)
     printf("Added body at (%f, %f)\n", x, y); // Debugging statement
 }
 
+void removeBodyAtPosition(float x, float y)
+{
+    for (int i = 0; i < numBodies; ++i)
+    {
+        float dx = bodies[i].pos.x - x;
+        float dy = bodies[i].pos.y - y;
+        float distance = sqrt(dx * dx + dy * dy);
+
+        if (distance < bodies[i].radius)
+        {
+            // Remove the body by shifting the remaining bodies
+            for (int j = i; j < numBodies - 1; ++j)
+            {
+                bodies[j] = bodies[j + 1];
+            }
+            --numBodies;
+            printf("Removed body at (%f, %f)\n", x, y); // Debugging statement
+            return;
+        }
+    }
+}
+
+
 void freeBodies() 
 {
     free(bodies);
+}
+
+void drawGrid(float spacing, int numLines)
+{
+    glColor3f(0.8f, 0.8f, 0.8f); // Set grid color (light gray)
+    glBegin(GL_LINES);
+
+    // Draw vertical lines
+    for (int i = -numLines; i <= numLines; ++i)
+    {
+        float x = i * spacing;
+        glVertex3f(x, -numLines * spacing, 0.0f);
+        glVertex3f(x, numLines * spacing, 0.0f);
+    }
+
+    // Draw horizontal lines
+    for (int i = -numLines; i <= numLines; ++i)
+    {
+        float y = i * spacing;
+        glVertex3f(-numLines * spacing, y, 0.0f);
+        glVertex3f(numLines * spacing, y, 0.0f);
+    }
+
+    glEnd();
 }
 
 void setup()
@@ -632,6 +682,34 @@ void KeyPressed(unsigned char key, int x, int y)
         scanf("%s", filename);
         writeBodiesToFile(filename);
 	}
+    if(key == 'e')
+    {
+        if(EraseMode)
+        {
+            EraseMode = false;
+            terminalPrint();
+        }
+        else
+        {
+            EraseMode = true;
+            terminalPrint();
+        }
+    }
+    if(key == 'g')
+    {
+        if(GridOn)
+        {
+            GridOn = false;
+            drawPicture();
+            terminalPrint();
+        }
+        else
+        {
+            GridOn = true;
+            drawPicture();
+            terminalPrint();
+        }
+    }
 
     if(NewBodyToggle == 1)
     {
@@ -697,9 +775,16 @@ void mousePassiveMotionCallback(int x, int y)
     MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
 	MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
     MouseZ = 0.0f;
-    if (isDragging)
+    if (IsDragging)
     {
-        addBodyAtPosition(MouseX, MouseY);
+        if(EraseMode)
+        {
+            removeBodyAtPosition(MouseX, MouseY);
+        }
+        else
+        {
+            addBodyAtPosition(MouseX, MouseY);
+        }
     }
 
 
@@ -716,133 +801,139 @@ void mymouse(int button, int state, int x, int y)
 		{	
 			if(NewBodyToggle == 1)
 			{
-
-                //generate random numbers for all the properties of the new body
-				
-                int index = numBodies; // Define and initialize index
-
-				// Convert window coordinates to OpenGL coordinates
-				MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
-				MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
-                MouseZ = 0.0f;
-
-                // Print the converted coordinates for debugging
-                printf("MouseX: %f, MouseY: %f, MouseZ: %f\n", MouseX, MouseY, MouseZ);
-
-                Body newBody; //create a new body with the body struct
-
-                // Set the color of the new body based on the ColorToggle
-
-                if(ColorToggle == 1)
+                if(EraseMode)
                 {
-                    newBody.color = getColor("paris_m");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 2)
-                {
-                    newBody.color = getColor("manz");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 3)
-                {
-                    newBody.color = getColor("outer_space");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 4)
-                {
-                    newBody.color = getColor("curious_blue");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 5)
-                {
-                    newBody.color = getColor("tahuna_sands");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 6)
-                {
-                    newBody.color = getColor("livid_brown");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 7)
-                {
-                    newBody.color = getColor("neptune");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 8)
-                {
-                    newBody.color = getColor("lochmara");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 9)
-                {
-                    newBody.color = getColor("regal_blue");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 10)
-                {
-                    newBody.color = getColor("vis_vis");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 11)
-                {
-                    newBody.color = getColor("light_curious_blue");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 12)
-                {
-                    newBody.color = getColor("ironside_grey");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 13)
-                {
-                    newBody.color = getColor("yellow");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 14)
-                {
-                    newBody.color = getColor("deco");
-                    HotkeyPrint = 0;
-                }
-                else if(ColorToggle == 15)
-                {
-                    newBody.color = getColor("astronaut_blue");
-                    HotkeyPrint = 0;
+                    removeBodyAtPosition(MouseX, MouseY);
                 }
                 else
                 {
-                    newBody.color =  {1.0f, 1.0f, 1.0f, 1.0f}; //default
-                }
+                    //generate random numbers for all the properties of the new body
+                    
+                    int index = numBodies; // Define and initialize index
 
-                //assign all the properties of the new body
-                newBody.id = index;
-                newBody.isSolid = true;
-                newBody.movement = NewBodyMovement;
-                newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
-                newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
-				newBody.radius = newBodyRadius * DiameterOfBody/2.0f;
+                    // Convert window coordinates to OpenGL coordinates
+                    MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
+                    MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+                    MouseZ = 0.0f;
 
-                addBody(newBody);
-			}
+                    // Print the converted coordinates for debugging
+                    printf("MouseX: %f, MouseY: %f, MouseZ: %f\n", MouseX, MouseY, MouseZ);
+
+                    Body newBody; //create a new body with the body struct
+
+                    // Set the color of the new body based on the ColorToggle
+
+                    if(ColorToggle == 1)
+                    {
+                        newBody.color = getColor("paris_m");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 2)
+                    {
+                        newBody.color = getColor("manz");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 3)
+                    {
+                        newBody.color = getColor("outer_space");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 4)
+                    {
+                        newBody.color = getColor("curious_blue");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 5)
+                    {
+                        newBody.color = getColor("tahuna_sands");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 6)
+                    {
+                        newBody.color = getColor("livid_brown");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 7)
+                    {
+                        newBody.color = getColor("neptune");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 8)
+                    {
+                        newBody.color = getColor("lochmara");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 9)
+                    {
+                        newBody.color = getColor("regal_blue");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 10)
+                    {
+                        newBody.color = getColor("vis_vis");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 11)
+                    {
+                        newBody.color = getColor("light_curious_blue");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 12)
+                    {
+                        newBody.color = getColor("ironside_grey");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 13)
+                    {
+                        newBody.color = getColor("yellow");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 14)
+                    {
+                        newBody.color = getColor("deco");
+                        HotkeyPrint = 0;
+                    }
+                    else if(ColorToggle == 15)
+                    {
+                        newBody.color = getColor("astronaut_blue");
+                        HotkeyPrint = 0;
+                    }
+                    else
+                    {
+                        newBody.color =  {1.0f, 1.0f, 1.0f, 1.0f}; //default
+                    }
+
+                    //assign all the properties of the new body
+                    newBody.id = index;
+                    newBody.isSolid = true;
+                    newBody.movement = NewBodyMovement;
+                    newBody.pos = {MouseX, MouseY, MouseZ, 1.0f}; // Directly assign values to float4
+                    newBody.force = {0.0f, 0.0f, 0.0f, 0.0f}; // Directly assign values to float4
+                    newBody.radius = newBodyRadius * DiameterOfBody/2.0f;
+
+                    addBody(newBody);
+                }   
+            }
 		}
 		else if(button == GLUT_RIGHT_BUTTON) // Right Mouse button down
 		{
             if (state == GLUT_DOWN)
             {
                 //make it a toggle
-                if(isDragging == false)
+                if(IsDragging == false)
                 {
-                    isDragging = true;
+                    IsDragging = true;
                     initialMouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
                     initialMouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
                 }
                 else
                 {
-                    isDragging = false;
+                    IsDragging = false;
                 }
             }
             else if (state == GLUT_UP)
             {
-                isDragging = false;
+                IsDragging = false;
                 printf("Mouse up at (%f, %f)\n", MouseX, MouseY); // Debugging statement
             }
 		}
@@ -1184,6 +1275,11 @@ void drawPicture()
     if (Trace == 0)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    if(GridOn)
+    {
+        drawGrid(0.1f, 19); // Adjust spacing and number of lines as needed
     }
 
     if (NewBodyToggle == 1)
@@ -1550,6 +1646,21 @@ void terminalPrint()
 		printf("\033[0;32m");
 		printf(BOLD_ON "Video Recording On\n" BOLD_OFF);
 	}
+    printf("\n");
+    printf("\033[0m");
+    printf("g: Grid On/Off Toggle --> ");
+    if (GridOn)
+    {
+        printf("\033[0;32m");
+        printf(BOLD_ON "Grid On" BOLD_OFF);
+    }
+    else
+    {
+        printf("\033[0;31m");
+        printf(BOLD_ON "Grid Off" BOLD_OFF);
+    }
+
+
 	printf("\n n: Simulaton Mode Add View/Add Body Toggle --> Mode:");
 	if (NewBodyToggle== 0) 
 	{
@@ -1685,7 +1796,21 @@ void terminalPrint()
             printf("\033[0;32m");
             printf(BOLD_ON "Solid On" BOLD_OFF);
         }
+        
+        printf("\n");
+        printf("\033[0m");
+        printf("e: Erase bodies toggle --> ");
 
+        if (!EraseMode)
+        {
+            printf("\033[0;31m");
+            printf(BOLD_ON "Off" BOLD_OFF);
+        }
+        else
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "On" BOLD_OFF);
+        }
 
     }
     printf("\n");
