@@ -808,8 +808,8 @@ void mousePassiveMotionCallback(int x, int y)
 
     // Print the converted coordinates for debugging
     //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
-    MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
-	MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
+    MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
     MouseZ = 0.0f;
     if (IsDragging)
     {
@@ -848,8 +848,8 @@ void mymouse(int button, int state, int x, int y)
                     int index = numBodies; // Define and initialize index
 
                     // Convert window coordinates to OpenGL coordinates
-                    MouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
-                    MouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+                    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
+                    MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
                     MouseZ = 0.0f;
 
                     // Print the converted coordinates for debugging
@@ -959,8 +959,8 @@ void mymouse(int button, int state, int x, int y)
                 if(IsDragging == false)
                 {
                     IsDragging = true;
-                    initialMouseX = ( 2.0*x/XWindowSize - 1.0) *2.8 + 1.0;
-                    initialMouseY = (-2.0*y/YWindowSize + 1.0)*1.5 - 0.5;
+                    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
+                    MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
                 }
                 else
                 {
@@ -1022,6 +1022,15 @@ void renderBackground()
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, backgroundTexture);
 
+    // Save the current color state
+    GLboolean colorMask[4];
+    glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+    GLfloat currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
+
+    // Reset color to white
+    glColor3f(1.0f, 1.0f, 1.0f);
+
     // Calculate aspect ratio
     float windowAspect = (float)XWindowSize / (float)YWindowSize;
 
@@ -1033,6 +1042,10 @@ void renderBackground()
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
+
+    // Restore the previous color state
+    glColor4fv(currentColor);
+    glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
 }
 
 string getTimeStamp()
@@ -1338,26 +1351,18 @@ void zeroOutSystem()
 
 void drawPicture()
 {
-
-
     if (Trace == 0)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    if (backgroundTexture != 0)
+    // Render the background image
+    if (BackgroundToggle && backgroundTexture != 0)
     {
-        if(BackgroundToggle)
-        {
-            renderBackground();
-        }
-        else
-        {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        }
+        renderBackground();
     }
 
-    if(GridOn)
+    if (GridOn)
     {
         drawGrid(0.1f, 19); // Adjust spacing and number of lines as needed
     }
@@ -1462,7 +1467,7 @@ void drawPicture()
             glColor3d(1.0, 1.0, 1.0);
         }
         glPushMatrix();
-        glTranslatef(MouseX, MouseY, MouseZ + DrawLayer/100.0f);
+        glTranslatef(MouseX, MouseY, MouseZ + DrawLayer / 100.0f);
         glutSolidSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
         glPopMatrix();
     }
@@ -1483,6 +1488,8 @@ void drawPicture()
         glReadPixels(0, 0, XWindowSize, YWindowSize, GL_RGBA, GL_UNSIGNED_BYTE, Buffer);
         fwrite(Buffer, sizeof(int) * XWindowSize * YWindowSize, 1, MovieFile);
     }
+
+ 
 }
 
 void getForces(Body* bodies, float mass, float G, float H, float Epsilon, float drag, float dt, int n)
