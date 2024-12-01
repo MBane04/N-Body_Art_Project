@@ -57,6 +57,8 @@ float MouseX, MouseY, MouseZ;
 float newBodyRadius = 0.1;
 int DrawLayer = 0;
 GLuint backgroundTexture;
+float circleCenterX = 0.0f;
+float circleCenterY = 0.0f;
 
 float initialMouseX, initialMouseY;
 
@@ -88,6 +90,10 @@ typedef struct
 	float4 vel;
 	float4 force;
 	float radius;
+    float initialY; //store the initial y position for sinusoidal movement
+
+    float4 circle; //(x,y) of the center of the circle for circular movement, z is initial angle, w is orbital radius
+
 } Body;
 
 // Prototyping functions
@@ -111,7 +117,7 @@ void addBody(Body newBody);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "BENCHMARKTEST"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "Outline"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -120,6 +126,7 @@ bool IsDragging = false;
 bool GridOn = true;
 bool EraseMode = false;
 bool BackgroundToggle = true;
+bool selectCircleCenter = false;
 
 
 typedef struct //stores colors for Starry night
@@ -335,6 +342,21 @@ void addBody(Body newBody)
         newBody.vel.y = 0.0f;
         newBody.vel.z = 0.0f;
 	}
+    if (newBody.movement == 2) //sinusoidal
+    {
+        newBody.vel.x = 0.2f;
+        newBody.vel.y = 0.0f;
+        newBody.vel.z = 0.0f;
+        newBody.initialY = newBody.pos.y; // Store the initial y position
+        //the rest needs to be done in nBody since it needs to be updated every frame
+    }
+    if (newBody.movement == 3) //circular
+    {
+        newBody.circle.x = circleCenterX; // Store the center x position
+        newBody.circle.y = circleCenterY; // Store the center y position
+        newBody.circle.z = atan2(newBody.pos.y - circleCenterY, newBody.pos.x - circleCenterX); // Calculate the initial angle
+        newBody.circle.w = sqrt(pow(newBody.pos.x - circleCenterX, 2) + pow(newBody.pos.y - circleCenterY, 2)); // Calculate the radius
+    }
 
 
     /// Add the new body to the array
@@ -349,8 +371,9 @@ void addBody(Body newBody)
 
 void screenToWorld(int x, int y, float* worldX, float* worldY)
 {
-    *worldX = (float)x / XWindowSize * 2.0f - 1.0f;
-    *worldY = 1.0f - (float)y / YWindowSize * 2.0f;
+    float windowAspect = (float)XWindowSize / (float)YWindowSize;
+    *worldX =  (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
+    *worldY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
     printf("Converted screen (%d, %d) to world (%f, %f)\n", x, y, *worldX, *worldY); // Debugging statement
 }
 
@@ -764,10 +787,17 @@ void KeyPressed(unsigned char key, int x, int y)
         {
             printf("Enter the movement pattern for the new body: ");
             scanf("%d", &NewBodyMovement);
-            if (NewBodyMovement != 0 && NewBodyMovement != 1) //change this when we actually make new bodies
+            if (NewBodyMovement != 0 && NewBodyMovement != 1 && NewBodyMovement != 2 && NewBodyMovement != 3) //change this when we actually make new bodies
             {
                 printf("Invalid movement pattern.\n");
                 NewBodyMovement = 0;
+            }
+            if(NewBodyMovement == 3)
+            {
+                //get the center of the circle from the user using the mouse
+                selectCircleCenter = true;
+                printf("Click on the center of the circle.\n");
+                
             }
             terminalPrint();
         }
@@ -808,6 +838,7 @@ void mousePassiveMotionCallback(int x, int y)
 
     // Print the converted coordinates for debugging
     //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+    float windowAspect = (float)XWindowSize / (float)YWindowSize;
     MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
     MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
     MouseZ = 0.0f;
@@ -841,6 +872,13 @@ void mymouse(int button, int state, int x, int y)
                 {
                     removeBodyAtPosition(MouseX, MouseY);
                 }
+                else if(selectCircleCenter)
+                {
+                    // Convert screen coordinates to world coordinates
+                    screenToWorld(x, y, &circleCenterX, &circleCenterY);
+                    printf("Circle center selected at (%f, %f)\n", circleCenterX, circleCenterY);
+                    selectCircleCenter = false; // Reset the flag
+                }
                 else
                 {
                     //generate random numbers for all the properties of the new body
@@ -848,6 +886,7 @@ void mymouse(int button, int state, int x, int y)
                     int index = numBodies; // Define and initialize index
 
                     // Convert window coordinates to OpenGL coordinates
+                    float windowAspect = (float)XWindowSize / (float)YWindowSize;
                     MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
                     MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
                     MouseZ = 0.0f;
@@ -959,6 +998,7 @@ void mymouse(int button, int state, int x, int y)
                 if(IsDragging == false)
                 {
                     IsDragging = true;
+                    float windowAspect = (float)XWindowSize / (float)YWindowSize;
                     MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
                     MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
                 }
@@ -1598,15 +1638,30 @@ void nBody()
         // Update positions and velocities
         for (int i = 0; i < numBodies; i++)
         {
-            bodies[i].vel.x += ((bodies[i].force.x - Drag * bodies[i].vel.x) / MassOfBody) * Dt;
-            bodies[i].vel.y += ((bodies[i].force.y - Drag * bodies[i].vel.y) / MassOfBody) * Dt;
-            bodies[i].vel.z += ((bodies[i].force.z - Drag * bodies[i].vel.z) / MassOfBody) * Dt;
+            if (bodies[i].movement == 2) // sinusoidal
+            {
+                float frequency = 10.0f; // Adjust this value to change the period of the sine wave
+                float amplitude = 0.2f; // Adjust this value to change the amplitude of the sine wave
+    
+                bodies[i].pos.x += bodies[i].vel.x * Dt;
+                bodies[i].pos.y = bodies[i].initialY + amplitude * sin(frequency * bodies[i].pos.x);
+            }
+            if (bodies[i].movement == 3) // circular
+            {
+                float angularVelocity = 2.0f; // Adjust this value to change the angular velocity of the circle
 
-            bodies[i].pos.x += bodies[i].vel.x * Dt;
-            bodies[i].pos.y += bodies[i].vel.y * Dt;
-            bodies[i].pos.z += bodies[i].vel.z * Dt;
+                float angle = bodies[i].circle.z + angularVelocity * RunTime;
+                bodies[i].pos.x = bodies[i].circle.x + bodies[i].circle.w * cos(angle);
+                bodies[i].pos.y = bodies[i].circle.y + bodies[i].circle.w * sin(angle);
+            }
+            else
+            {
+                // Update position based on velocity for other movement types
+                bodies[i].pos.x += bodies[i].vel.x * Dt;
+                bodies[i].pos.y += bodies[i].vel.y * Dt;
+                bodies[i].pos.z += bodies[i].vel.z * Dt;
+            }
         }
-
         // Print positions and velocities after update
         // for (int i = 0; i < numBodies; i++)
         // {
@@ -1657,7 +1712,7 @@ void terminalPrint()
 	BOLD_OFF   "\e[m"
 	*/
 	
-	system("clear");
+	//system("clear");
 	
     printf("\n");
 	printf("\n S: Screenshot");
@@ -1862,6 +1917,17 @@ void terminalPrint()
             printf("\033[0;32m");
             printf(BOLD_ON "Still" BOLD_OFF);
         }
+        else if(NewBodyMovement == 2)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Sinusoidal" BOLD_OFF);
+        }
+        else if (NewBodyMovement == 3)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Circular" BOLD_OFF);
+        
+        }
         else
         {
             printf("\033[0;32m");
@@ -1912,8 +1978,8 @@ int main(int argc, char** argv)
 {
     setup();
 
-    XWindowSize = 3000;
-    YWindowSize = 1500;
+    XWindowSize = 1500;
+    YWindowSize = 750;
 
     // Clip planes
     Near = 0.2;
