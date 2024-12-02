@@ -534,7 +534,7 @@ void setup()
         // Read the previous simulation parameters from the specified file
         readBodiesFromFile(PreviousRunFile.c_str());
         setSimulationParameters();
-        zeroOutSystem();
+        //zeroOutSystem();
     }
     else
     {
@@ -836,11 +836,10 @@ void KeyPressed(unsigned char key, int x, int y)
 void mousePassiveMotionCallback(int x, int y) 
 {
 
-    // Print the converted coordinates for debugging
-    //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+
     float windowAspect = (float)XWindowSize / (float)YWindowSize;
-    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
-    MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
+    MouseX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
+    MouseY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
     MouseZ = 0.0f;
     if (IsDragging)
     {
@@ -857,6 +856,8 @@ void mousePassiveMotionCallback(int x, int y)
 
     // Redraw the scene
     //glutPostRedisplay();
+    // Print the converted coordinates for debugging
+    printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
 }
 
 // This is called when you push a mouse button.
@@ -887,7 +888,7 @@ void mymouse(int button, int state, int x, int y)
 
                     // Convert window coordinates to OpenGL coordinates
                     float windowAspect = (float)XWindowSize / (float)YWindowSize;
-                    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
+                    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect;
                     MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
                     MouseZ = 0.0f;
 
@@ -1978,8 +1979,8 @@ int main(int argc, char** argv)
 {
     setup();
 
-    XWindowSize = 1500;
-    YWindowSize = 750;
+    XWindowSize = 3000;
+    YWindowSize = 1500;
 
     // Clip planes
     Near = 0.2;
