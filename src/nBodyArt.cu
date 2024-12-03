@@ -123,7 +123,7 @@ void loadBackgroundImage(const char* filename);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "dotasaurus"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "test"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -231,7 +231,7 @@ void readBodiesFromFile(const char* filename)
         fclose(file);
         exit(1);
     }
-    printf("Initial memory allocated with capacity: %d\n", capacity);
+    //printf("Initial memory allocated with capacity: %d\n", capacity);
 
     // Skip the header line
     char header[256];
@@ -282,12 +282,12 @@ void readBodiesFromFile(const char* filename)
             }
 
             addBody(newBody);
-            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f, initialX=%f, initialY=%f, oscillationAmplitude=%f, oscillationAngle=%f\n",
-                   i, newBody.id, newBody.isSolid, newBody.color.x, newBody.color.y, newBody.color.z, newBody.color.w,
-                   newBody.movement, newBody.pos.x, newBody.pos.y, newBody.pos.z,
-                   newBody.vel.x, newBody.vel.y, newBody.vel.z,
-                   newBody.force.x, newBody.force.y, newBody.force.z,
-                   newBody.radius, newBody.initialX, newBody.initialY, newBody.oscillationAmplitude, newBody.oscillationAngle);
+            //printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f, initialX=%f, initialY=%f, oscillationAmplitude=%f, oscillationAngle=%f\n",
+                //    i, newBody.id, newBody.isSolid, newBody.color.x, newBody.color.y, newBody.color.z, newBody.color.w,
+                //    newBody.movement, newBody.pos.x, newBody.pos.y, newBody.pos.z,
+                //    newBody.vel.x, newBody.vel.y, newBody.vel.z,
+                //    newBody.force.x, newBody.force.y, newBody.force.z,
+                //    newBody.radius, newBody.initialX, newBody.initialY, newBody.oscillationAmplitude, newBody.oscillationAngle);
         }
         else
         {
@@ -297,11 +297,12 @@ void readBodiesFromFile(const char* filename)
     }
 
     fclose(file);
-    printf("Body information read from %s\n", filename);
+    //printf("Body information read from %s\n", filename);
 
     // Update numBodies
     numBodies = numBodiesFromFile;
 }
+
 
 void writeBodiesToFile(const char* filename)
 {
@@ -407,109 +408,51 @@ void addBody(Body newBody)
 
 void screenToWorld(int x, int y, float* worldX, float* worldY)
 {
-    float windowAspect = (float)XWindowSize / (float)YWindowSize;
-    *worldX =  (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
-    *worldY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
+    *worldX =  (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
+    *worldY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
     printf("Converted screen (%d, %d) to world (%f, %f)\n", x, y, *worldX, *worldY); // Debugging statement
 }
 
 void addBodyAtPosition(float x, float y)
 {
-
     Body newBody;
 
-    if (ColorToggle == 1)
+    // Set the color based on the ColorToggle value
+    switch (ColorToggle)
     {
-        newBody.color = getColor("paris_m");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 2)
-    {
-        newBody.color = getColor("manz");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 3)
-    {
-        newBody.color = getColor("outer_space");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 4)
-    {
-        newBody.color = getColor("curious_blue");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 5)
-    {
-        newBody.color = getColor("tahuna_sands");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 6)
-    {
-        newBody.color = getColor("livid_brown");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 7)
-    {
-        newBody.color = getColor("neptune");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 8)
-    {
-        newBody.color = getColor("lochmara");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 9)
-    {
-        newBody.color = getColor("regal_blue");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 10)
-    {
-        newBody.color = getColor("vis_vis");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 11)
-    {
-        newBody.color = getColor("light_curious_blue");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 12)
-    {
-        newBody.color = getColor("ironside_grey");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 13)
-    {
-        newBody.color = getColor("yellow");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 14)
-    {
-        newBody.color = getColor("deco");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 15)
-    {
-        newBody.color = getColor("astronaut_blue");
-        HotkeyPrint = 0;
-    }
-    else if (ColorToggle == 16)
-    {
-        newBody.color = getColor("bright_orange");
-        HotkeyPrint = 0;
-    }
-    else
-    {
-        newBody.color = {1.0f, 1.0f, 1.0f, 1.0f}; // default
+        case 1: newBody.color = getColor("paris_m"); break;
+        case 2: newBody.color = getColor("manz"); break;
+        case 3: newBody.color = getColor("outer_space"); break;
+        case 4: newBody.color = getColor("curious_blue"); break;
+        case 5: newBody.color = getColor("tahuna_sands"); break;
+        case 6: newBody.color = getColor("livid_brown"); break;
+        case 7: newBody.color = getColor("neptune"); break;
+        case 8: newBody.color = getColor("lochmara"); break;
+        case 9: newBody.color = getColor("regal_blue"); break;
+        case 10: newBody.color = getColor("vis_vis"); break;
+        case 11: newBody.color = getColor("light_curious_blue"); break;
+        case 12: newBody.color = getColor("ironside_grey"); break;
+        case 13: newBody.color = getColor("yellow"); break;
+        case 14: newBody.color = getColor("deco"); break;
+        case 15: newBody.color = getColor("astronaut_blue"); break;
+        default: newBody.color = getColor("default"); break;
     }
 
     newBody.id = numBodies;
-    newBody.pos = make_float4(x, y, 0.0 + DrawLayer/100.0, 1.0f);
+    newBody.pos = make_float4(x, y, 0.0 + DrawLayer / 100.0, 1.0f);
     newBody.vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     newBody.force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    newBody.radius = newBodyRadius *DiameterOfBody/2.0f;
+    newBody.radius = newBodyRadius * DiameterOfBody / 2.0f;
     newBody.isSolid = NewBodySolid;
     newBody.movement = NewBodyMovement;
+
+    if (NewBodyMovement == 4) // Oscillation movement
+    {
+        newBody.initialX = x;
+        newBody.initialY = y;
+        newBody.oscillationAmplitude = 9999.0; // Set the amplitude
+        newBody.oscillationAngle = 9999.0; // Set the angle
+    }
 
     addBody(newBody);
     printf("Added body at (%f, %f)\n", x, y); // Debugging statement
@@ -1372,7 +1315,7 @@ void allocateMemory()
         fprintf(stderr, "Initial memory allocation failed\n");
         exit(1);
     }
-    printf("Initial memory allocated with capacity: %d\n", capacity);
+    //printf("Initial memory allocated with capacity: %d\n", capacity);
 }
 
 void setInitialConditions()
@@ -1766,6 +1709,8 @@ void nBody()
             }
             else if (bodies[i].movement == 4) // Oscillation movement
             {
+                //printf("Before Calculations\n");
+
                 float time = RunTime; // Use the elapsed time for smooth oscillation
                 float frequency = 1.0f; // Adjust this value to change the frequency of the oscillation
                 float amplitude = bodies[i].oscillationAmplitude; // Use the amplitude set for the body
@@ -1776,8 +1721,8 @@ void nBody()
                 bodies[i].pos.y = bodies[i].initialY + amplitude * sin(angle) * sin(frequency * time);
 
                 // Debugging statements
-                //printf("Body %d: pos=(%f, %f), initial=(%f, %f), amplitude=%f, frequency=%f, angle=%f, time=%f\n",
-                //     bodies[i].id, bodies[i].pos.x, bodies[i].pos.y, bodies[i].initialX, bodies[i].initialY, amplitude, frequency, angle, time);
+                // printf("Body %d: pos=(%f, %f), initial=(%f, %f), amplitude=%f, frequency=%f, angle=%f, time=%f\n",
+                //      bodies[i].id, bodies[i].pos.x, bodies[i].pos.y, bodies[i].initialX, bodies[i].initialY, amplitude, frequency, angle, time);
             }
             else
             {
@@ -1828,7 +1773,7 @@ void terminalPrint()
 	BOLD_OFF   "\e[m"
 	*/
 	
-	//system("clear");
+	system("clear");
 	
     printf("\n");
 	printf("\n S: Screenshot");
