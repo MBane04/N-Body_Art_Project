@@ -116,8 +116,8 @@ void addBody(Body newBody);
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "Outline"; // The file name of the previous simulation you want to run.
+int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
+string PreviousRunFile = "FIRE"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -146,6 +146,8 @@ typedef struct //stores colors for Starry night
     float4 yellow;
     float4 deco;
     float4 astronaut_blue;
+    float4 bright_orange;
+    //float4 fiery_red;
 } Colors;
 
 Colors colors = { // assigns values corresponding to the colors in the struct
@@ -163,7 +165,8 @@ Colors colors = { // assigns values corresponding to the colors in the struct
     {40.0/255.0, 40.0/255.0, 38.0/255.0, 1.0},
     {244.0/255.0, 179.0/255.0, 5.0/255.0, 1.0},
     {198.0/255.0, 202.0/255.0, 116.0/255.0, 1.0},
-    {42.0/255.0, 75.0/255.0, 124.0/255.0, 1.0}
+    {42.0/255.0, 75.0/255.0, 124.0/255.0, 1.0},
+    {240.0/255.0, 98.0/255.0, 16.0/255.0, 1.0},
 };
 
 float4 getColor(const char* colorName) { //to assign colors to the new body, call this function with the color name
@@ -182,6 +185,7 @@ float4 getColor(const char* colorName) { //to assign colors to the new body, cal
     if (strcmp(colorName, "yellow") == 0) return colors.yellow;
     if (strcmp(colorName, "deco") == 0) return colors.deco;
     if (strcmp(colorName, "astronaut_blue") == 0) return colors.astronaut_blue;
+    if (strcmp(colorName, "bright_orange") == 0) return colors.bright_orange;
     return (float4){0.0, 0.0, 0.0, 1.0}; // Default value
 }
 
@@ -455,6 +459,11 @@ void addBodyAtPosition(float x, float y)
     else if (ColorToggle == 15)
     {
         newBody.color = getColor("astronaut_blue");
+        HotkeyPrint = 0;
+    }
+    else if (ColorToggle == 16)
+    {
+        newBody.color = getColor("bright_orange");
         HotkeyPrint = 0;
     }
     else
@@ -759,7 +768,7 @@ void KeyPressed(unsigned char key, int x, int y)
     {
         if (key == 'l') // cycle through colors, forward
         {
-            if (ColorToggle < 15)
+            if (ColorToggle < 16)
             {
                 ColorToggle++;
             }
@@ -857,7 +866,7 @@ void mousePassiveMotionCallback(int x, int y)
     // Redraw the scene
     //glutPostRedisplay();
     // Print the converted coordinates for debugging
-    printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+    //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
 }
 
 // This is called when you push a mouse button.
@@ -972,6 +981,11 @@ void mymouse(int button, int state, int x, int y)
                     else if(ColorToggle == 15)
                     {
                         newBody.color = getColor("astronaut_blue");
+                        HotkeyPrint = 0;
+                    }
+                      else if(ColorToggle == 16)
+                    {
+                        newBody.color = getColor("bright_orange");
                         HotkeyPrint = 0;
                     }
                     else
@@ -1502,6 +1516,12 @@ void drawPicture()
             mouseColor = getColor("astronaut_blue");
             glColor3d(mouseColor.x, mouseColor.y, mouseColor.z);
         }
+        else if (ColorToggle == 16)
+        {
+            //color astronaut blue
+            mouseColor = getColor("bright_orange");
+            glColor3d(mouseColor.x, mouseColor.y, mouseColor.z);
+        }
         else
         {
             //color white
@@ -1641,7 +1661,7 @@ void nBody()
         {
             if (bodies[i].movement == 2) // sinusoidal
             {
-                float frequency = 10.0f; // Adjust this value to change the period of the sine wave
+                float frequency = 1.0f; // Adjust this value to change the period of the sine wave
                 float amplitude = 0.2f; // Adjust this value to change the amplitude of the sine wave
     
                 bodies[i].pos.x += bodies[i].vel.x * Dt;
@@ -1898,6 +1918,11 @@ void terminalPrint()
         {
             printf("\033[0;32m");
             printf(BOLD_ON "Astronaut Blue" BOLD_OFF);
+        }
+         else if (ColorToggle == 16)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Bright Orange" BOLD_OFF);
         }
         else
         {
