@@ -117,12 +117,13 @@ float4 centerOfMass();
 float4 linearVelocity();
 void zeroOutSystem();
 void addBody(Body newBody);
+void loadBackgroundImage(const char* filename);
 
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "test"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "Outline(OLD)"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -130,7 +131,7 @@ bool NewBodySolid = true; // 0 if not solid, 1 if solid
 bool IsDragging = false;
 bool GridOn = true;
 bool EraseMode = false;
-bool BackgroundToggle = true;
+int BackgroundToggle = 1;
 bool selectCircleCenter = false;
 
 
@@ -781,15 +782,29 @@ void KeyPressed(unsigned char key, int x, int y)
 
     if(key == 'b')
     {
-        if(BackgroundToggle)
+        if(BackgroundToggle >= 0 && BackgroundToggle < 2)
         {
-            BackgroundToggle = false;
+            BackgroundToggle++;
+        }
+        else
+        {
+            BackgroundToggle = 0;
+        }
+        if(BackgroundToggle == 1)
+        {
+            loadBackgroundImage("../starry-king-of-the-monsters-hdtv.jpg");
+            drawPicture();
+            terminalPrint();
+        }
+        else if (BackgroundToggle == 2)
+        {
+            loadBackgroundImage("../starry-night.jpg");
             drawPicture();
             terminalPrint();
         }
         else
         {
-            BackgroundToggle = true;
+            BackgroundToggle = 0;
             drawPicture();
             terminalPrint();
         }
@@ -1132,6 +1147,11 @@ void mymouse(int button, int state, int x, int y)
 
 void loadBackgroundImage(const char* filename)
 {
+    // Load the image using your preferred method
+    // This is a placeholder function, replace it with your actual image loading code
+    // Example: loadTexture(filename, &backgroundTexture);
+
+    // Example using SOIL (Simple OpenGL Image Library)
     backgroundTexture = SOIL_load_OGL_texture(
         filename,
         SOIL_LOAD_AUTO,
@@ -1141,7 +1161,7 @@ void loadBackgroundImage(const char* filename)
 
     if (backgroundTexture == 0)
     {
-        printf("SOIL loading error: '%s'\n", SOIL_last_result());
+        fprintf(stderr, "Error: Failed to load background image %s\n", filename);
     }
 }
 
@@ -1252,12 +1272,13 @@ void movieOn()
 
 void movieOff()
 {
-	if(MovieOn == 1) 
-	{
-		pclose(MovieFile);
-	}
-	free(Buffer);
-	MovieOn = 0;
+    if (MovieOn == 1) 
+    {
+        pclose(MovieFile);
+    }
+    free(Buffer);
+    MovieOn = 0;
+    printf("Movie recording stopped successfully\n");
 }
 
 void screenShot()
@@ -1605,14 +1626,19 @@ void drawPicture()
         glutSolidSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
         glPopMatrix();
 
+        // Draw the oscillation path line
         if (NewBodyMovement == 4)
         {
             float dx = currentOscillationAmplitude * cos(currentOscillationAngle);
             float dy = currentOscillationAmplitude * sin(currentOscillationAngle);
             glColor3f(1.0f, 0.0f, 0.0f); // Red color for the line
             glBegin(GL_LINES);
+            // Draw line in front of the body
             glVertex3f(MouseX, MouseY, MouseZ);
             glVertex3f(MouseX + dx, MouseY + dy, MouseZ);
+            // Draw line behind the body
+            glVertex3f(MouseX, MouseY, MouseZ);
+            glVertex3f(MouseX - dx, MouseY - dy, MouseZ);
             glEnd();
         }
     }
