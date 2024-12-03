@@ -59,6 +59,8 @@ int DrawLayer = 0;
 GLuint backgroundTexture;
 float circleCenterX = 0.0f;
 float circleCenterY = 0.0f;
+float currentOscillationAmplitude = 0.0f;
+float currentOscillationAngle = 0.0f;
 
 float initialMouseX, initialMouseY;
 
@@ -119,7 +121,7 @@ void addBody(Body newBody);
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
+int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
 string PreviousRunFile = "test"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
@@ -383,8 +385,8 @@ void addBody(Body newBody)
         
         newBody.initialX = newBody.pos.x;
         newBody.initialY = newBody.pos.y;
-        newBody.oscillationAmplitude = 1.0f; // Example amplitude
-        newBody.oscillationAngle = 0.0f; // Example angle (0 radians for horizontal oscillation)
+        newBody.oscillationAmplitude = currentOscillationAmplitude; // Example amplitude
+        newBody.oscillationAngle = currentOscillationAngle; // Example angle (0 radians for horizontal oscillation)
     }
 
 
@@ -815,6 +817,7 @@ void KeyPressed(unsigned char key, int x, int y)
         if (key == 'm')
         {
             printf("Enter the movement pattern for the new body: ");
+            printf("0 for random movement, 1 for still, 2 for sinusoidal, 3 for circular, 4 for oscillating\n");
             scanf("%d", &NewBodyMovement);
             if (NewBodyMovement < 0 || NewBodyMovement > 4)
             {
@@ -825,9 +828,9 @@ void KeyPressed(unsigned char key, int x, int y)
             {
                 //get the center of the circle from the user using the mouse
                 selectCircleCenter = true;
-                printf("Click on the center of the circle.\n");
-                
+                currentOscillationAmplitude = 0.0f;
             }
+            
             terminalPrint();
         }
 
@@ -858,7 +861,46 @@ void KeyPressed(unsigned char key, int x, int y)
             terminalPrint();
         }
 
-       
+       if(NewBodyMovement == 4)
+       {
+            if (key == 'r') // Rotate oscillation angle left
+            {
+                currentOscillationAngle -= 0.1f; // Adjust the angle increment as needed
+                if (currentOscillationAngle < 0.0f)
+                {
+                    currentOscillationAngle += 2.0f * M_PI;
+                }
+                drawPicture();
+                terminalPrint();
+            }
+            if (key == 'R') // Rotate oscillation angle right
+            {
+                currentOscillationAngle += 0.1f; // Adjust the angle increment as needed
+                if (currentOscillationAngle >= 2.0f * M_PI)
+                {
+                    currentOscillationAngle -= 2.0f * M_PI;
+                }
+                drawPicture();
+                terminalPrint();
+            }
+
+            if (key == '+') // Increase oscillation amplitude
+            {
+                currentOscillationAmplitude += 0.01f; // Adjust the amplitude increment as needed
+                drawPicture();
+                terminalPrint();
+            }
+            if (key == '-') // Decrease oscillation amplitude
+            {
+                currentOscillationAmplitude -= 0.01f; // Adjust the amplitude increment as needed
+                if (currentOscillationAmplitude < 0.0f)
+                {
+                    currentOscillationAmplitude = 0.0f;
+                }
+                drawPicture();
+                terminalPrint();
+            }
+       }
     }
 }
 
@@ -1542,6 +1584,17 @@ void drawPicture()
         glTranslatef(MouseX, MouseY, MouseZ + DrawLayer / 100.0f);
         glutSolidSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
         glPopMatrix();
+
+        if (NewBodyMovement == 4)
+        {
+            float dx = currentOscillationAmplitude * cos(currentOscillationAngle);
+            float dy = currentOscillationAmplitude * sin(currentOscillationAngle);
+            glColor3f(1.0f, 0.0f, 0.0f); // Red color for the line
+            glBegin(GL_LINES);
+            glVertex3f(MouseX, MouseY, MouseZ);
+            glVertex3f(MouseX + dx, MouseY + dy, MouseZ);
+            glEnd();
+        }
     }
 
     for (int i = 0; i < numBodies; i++)
@@ -1670,14 +1723,15 @@ void nBody()
                 float time = RunTime; // Use the elapsed time for smooth oscillation
                 float frequency = 1.0f; // Adjust this value to change the frequency of the oscillation
                 float amplitude = bodies[i].oscillationAmplitude; // Use the amplitude set for the body
+                float angle = bodies[i].oscillationAngle; // Use the angle set for the body
 
                 // Calculate the new position using a sine function
-                bodies[i].pos.x = bodies[i].initialX + amplitude * sin(frequency * time);
-                bodies[i].pos.y = bodies[i].initialY; // Keep y constant for horizontal oscillation
+                bodies[i].pos.x = bodies[i].initialX + amplitude * cos(angle) * sin(frequency * time);
+                bodies[i].pos.y = bodies[i].initialY + amplitude * sin(angle) * sin(frequency * time);
 
                 // Debugging statements
-                printf("Body %d: pos=(%f, %f), initial=(%f, %f), amplitude=%f, frequency=%f, time=%f\n",
-                       bodies[i].id, bodies[i].pos.x, bodies[i].pos.y, bodies[i].initialX, bodies[i].initialY, amplitude, frequency, time);
+                //printf("Body %d: pos=(%f, %f), initial=(%f, %f), amplitude=%f, frequency=%f, angle=%f, time=%f\n",
+                //     bodies[i].id, bodies[i].pos.x, bodies[i].pos.y, bodies[i].initialX, bodies[i].initialY, amplitude, frequency, angle, time);
             }
             else
             {
@@ -1942,12 +1996,22 @@ void terminalPrint()
         {
             printf("\033[0;32m");
             printf(BOLD_ON "Circular" BOLD_OFF);
+            if(selectCircleCenter)
+            {
+                printf("\n");
+                printf("\033[0m");
+                printf("Click to select circle center:");
+            }
         
         }
         else if (NewBodyMovement == 4)
         {
             printf("\033[0;32m");
             printf(BOLD_ON "Oscillation" BOLD_OFF);
+
+            printf("\n");
+            printf("r/R: rotate the oscillation angle forwards/backwards\n");
+            printf("+/-: increase/decrease the oscillation amplitude\n");
         }
         else
         {
