@@ -1,5 +1,5 @@
 cd src
-nvcc -G -g nBodyArt.cu -o nBodyArt -lglut -lm -lGLU -lGL
+nvcc nBodyArt.cu -o nBodyArt -g -lglut -lm -lGLU -lGL -lSOIL
 
 gdb ./nBodyArt
 
