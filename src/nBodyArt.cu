@@ -90,9 +90,12 @@ typedef struct
 	float4 vel;
 	float4 force;
 	float radius;
+    float initialX; //store the initial x position for sinusoidal movement
     float initialY; //store the initial y position for sinusoidal movement
 
     float4 circle; //(x,y) of the center of the circle for circular movement, z is initial angle, w is orbital radius
+    float oscillationAmplitude; //amplitude of the oscillation for sinusoidal movement  
+    float oscillationAngle; // Angle of the oscillation in radians
 
 } Body;
 
@@ -116,8 +119,8 @@ void addBody(Body newBody);
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "Outline"; // The file name of the previous simulation you want to run.
+int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
+string PreviousRunFile = "test"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -192,9 +195,9 @@ int capacity = INITIAL_CAPACITY; // Initial capacity of the bodies array
 
 void readBodiesFromFile(const char* filename)
 {
-    //append the file directory to the file
+    // Append the file directory to the file
     string fileDir = "../PreviousRuns/";
-    fileDir.append(filename); //now fileDir = "/PreviousRuns/filename"
+    fileDir.append(filename); // Now fileDir = "/PreviousRuns/filename"
 
     FILE* file = fopen(fileDir.c_str(), "r");
     if (file == NULL)
@@ -236,7 +239,8 @@ void readBodiesFromFile(const char* filename)
         float pos_x, pos_y, pos_z;
         float vel_x, vel_y, vel_z;
         float force_x, force_y, force_z;
-        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+        float initialX = 0.0f, initialY = 0.0f, oscillationAmplitude = 0.0f, oscillationAngle = 0.0f;
+        int result = fscanf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f, %f, %f, %f, %f\n",
                             &newBody.id,
                             &isSolid,
                             &color_x, &color_y, &color_z, &color_w,
@@ -244,26 +248,43 @@ void readBodiesFromFile(const char* filename)
                             &pos_x, &pos_y, &pos_z,
                             &vel_x, &vel_y, &vel_z,
                             &force_x, &force_y, &force_z,
-                            &newBody.radius);
-        newBody.isSolid = (bool)isSolid;
-        newBody.color = make_float4(color_x, color_y, color_z, color_w);
-        newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
-        newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
-        newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+                            &newBody.radius,
+                            &initialX, &initialY, &oscillationAmplitude, &oscillationAngle);
 
-        if (result == 17)
+        if (result == 17 || result == 21) // Old format or new format
         {
+            newBody.isSolid = (bool)isSolid;
+            newBody.color = make_float4(color_x, color_y, color_z, color_w);
+            newBody.pos = make_float4(pos_x, pos_y, pos_z, 1.0f);
+            newBody.vel = make_float4(vel_x, vel_y, vel_z, 0.0f);
+            newBody.force = make_float4(force_x, force_y, force_z, 0.0f);
+
+            if (result == 21) // New format
+            {
+                newBody.initialX = initialX;
+                newBody.initialY = initialY;
+                newBody.oscillationAmplitude = oscillationAmplitude;
+                newBody.oscillationAngle = oscillationAngle;
+            }
+            else // Old format
+            {
+                newBody.initialX = 0.0f;
+                newBody.initialY = 0.0f;
+                newBody.oscillationAmplitude = 0.0f;
+                newBody.oscillationAngle = 0.0f;
+            }
+
             addBody(newBody);
-            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f\n",
+            printf("Read body %d: id=%d, isSolid=%d, color=(%f, %f, %f, %f), movement=%d, pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f), radius=%f, initialX=%f, initialY=%f, oscillationAmplitude=%f, oscillationAngle=%f\n",
                    i, newBody.id, newBody.isSolid, newBody.color.x, newBody.color.y, newBody.color.z, newBody.color.w,
                    newBody.movement, newBody.pos.x, newBody.pos.y, newBody.pos.z,
                    newBody.vel.x, newBody.vel.y, newBody.vel.z,
                    newBody.force.x, newBody.force.y, newBody.force.z,
-                   newBody.radius);
+                   newBody.radius, newBody.initialX, newBody.initialY, newBody.oscillationAmplitude, newBody.oscillationAngle);
         }
         else
         {
-            fprintf(stderr, "Error: fscanf read %d values instead of 17\n", result);
+            fprintf(stderr, "Error: fscanf read %d values instead of 17 or 21\n", result);
             break;
         }
     }
@@ -278,7 +299,7 @@ void readBodiesFromFile(const char* filename)
 void writeBodiesToFile(const char* filename)
 {
     string fileDir = "../PreviousRuns/";
-    fileDir.append(filename); //now fileDir = "/PreviousRuns/filename"
+    fileDir.append(filename); // Now fileDir = "/PreviousRuns/filename"
 
     FILE* file = fopen(fileDir.c_str(), "w");
     if (file == NULL)
@@ -287,14 +308,15 @@ void writeBodiesToFile(const char* filename)
         return;
     }
 
-	// Write the number of bodies at the end of the file
+    // Write the number of bodies at the top of the file
     fprintf(file, "Number of bodies: %d\n", numBodies);
 
+    // Write the header line
+    fprintf(file, "ID, IsSolid, Color (R, G, B, A), Movement, Position (X, Y, Z), Velocity (X, Y, Z), Force (X, Y, Z), Radius, InitialX, InitialY, OscillationAmplitude, OscillationAngle\n");
 
-    fprintf(file, "ID, IsSolid, Color (R, G, B, A), Movement, Position (X, Y, Z), Velocity (X, Y, Z), Force (X, Y, Z), Radius\n");
     for (int i = 0; i < numBodies; i++)
     {
-        fprintf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f\n",
+        fprintf(file, "%d, %d, (%f, %f, %f, %f), %d, (%f, %f, %f), (%f, %f, %f), (%f, %f, %f), %f, %f, %f, %f, %f\n",
                 bodies[i].id,
                 bodies[i].isSolid,
                 bodies[i].color.x, bodies[i].color.y, bodies[i].color.z, bodies[i].color.w,
@@ -302,10 +324,9 @@ void writeBodiesToFile(const char* filename)
                 bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
                 bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
                 bodies[i].force.x, bodies[i].force.y, bodies[i].force.z,
-                bodies[i].radius);
+                bodies[i].radius,
+                bodies[i].initialX, bodies[i].initialY, bodies[i].oscillationAmplitude, bodies[i].oscillationAngle);
     }
-
-
 
     fclose(file);
     printf("Body information written to %s\n", filename);
@@ -356,6 +377,14 @@ void addBody(Body newBody)
         newBody.circle.y = circleCenterY; // Store the center y position
         newBody.circle.z = atan2(newBody.pos.y - circleCenterY, newBody.pos.x - circleCenterX); // Calculate the initial angle
         newBody.circle.w = sqrt(pow(newBody.pos.x - circleCenterX, 2) + pow(newBody.pos.y - circleCenterY, 2)); // Calculate the radius
+    }
+    if (newBody.movement == 4) //oscillating
+    {
+        
+        newBody.initialX = newBody.pos.x;
+        newBody.initialY = newBody.pos.y;
+        newBody.oscillationAmplitude = 1.0f; // Example amplitude
+        newBody.oscillationAngle = 0.0f; // Example angle (0 radians for horizontal oscillation)
     }
 
 
@@ -787,7 +816,7 @@ void KeyPressed(unsigned char key, int x, int y)
         {
             printf("Enter the movement pattern for the new body: ");
             scanf("%d", &NewBodyMovement);
-            if (NewBodyMovement != 0 && NewBodyMovement != 1 && NewBodyMovement != 2 && NewBodyMovement != 3) //change this when we actually make new bodies
+            if (NewBodyMovement < 0 || NewBodyMovement > 4)
             {
                 printf("Invalid movement pattern.\n");
                 NewBodyMovement = 0;
@@ -857,7 +886,7 @@ void mousePassiveMotionCallback(int x, int y)
     // Redraw the scene
     //glutPostRedisplay();
     // Print the converted coordinates for debugging
-    printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
+    //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
 }
 
 // This is called when you push a mouse button.
@@ -888,8 +917,9 @@ void mymouse(int button, int state, int x, int y)
 
                     // Convert window coordinates to OpenGL coordinates
                     float windowAspect = (float)XWindowSize / (float)YWindowSize;
-                    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect;
-                    MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
+                    MouseX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
+                    MouseY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
+                    MouseZ = 0.0f;
                     MouseZ = 0.0f;
 
                     // Print the converted coordinates for debugging
@@ -1000,8 +1030,9 @@ void mymouse(int button, int state, int x, int y)
                 {
                     IsDragging = true;
                     float windowAspect = (float)XWindowSize / (float)YWindowSize;
-                    MouseX = (2.0f * x / XWindowSize - 1.0f) * windowAspect * 3.0f + 1.1f;
-                    MouseY = (-2.0f * y / YWindowSize + 1.0f) * 1.5f - 0.5f;
+                    MouseX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
+                    MouseY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
+                    MouseZ = 0.0f;
                 }
                 else
                 {
@@ -1615,27 +1646,6 @@ void nBody()
 {
     if (Pause != 1)
     {
-        // Print initial positions and velocities
-        // for (int i = 0; i < numBodies; i++)
-        // {
-        //     printf("Initial Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
-        //            i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
-        //            bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
-        //            bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
-        // }
-
-        // Calculate forces
-        //getForces(bodies, MassOfBody, G, H, Epsilon, Drag, Dt, numBodies);
-
-        // Print positions, velocities, and forces after force calculation
-        // for (int i = 0; i < numBodies; i++)
-        // {
-        //     printf("After Force Calculation Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
-        //            i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
-        //            bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
-        //            bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
-        // }
-
         // Update positions and velocities
         for (int i = 0; i < numBodies; i++)
         {
@@ -1647,13 +1657,27 @@ void nBody()
                 bodies[i].pos.x += bodies[i].vel.x * Dt;
                 bodies[i].pos.y = bodies[i].initialY + amplitude * sin(frequency * bodies[i].pos.x);
             }
-            if (bodies[i].movement == 3) // circular
+            else if (bodies[i].movement == 3) // circular
             {
                 float angularVelocity = 2.0f; // Adjust this value to change the angular velocity of the circle
 
                 float angle = bodies[i].circle.z + angularVelocity * RunTime;
                 bodies[i].pos.x = bodies[i].circle.x + bodies[i].circle.w * cos(angle);
                 bodies[i].pos.y = bodies[i].circle.y + bodies[i].circle.w * sin(angle);
+            }
+            else if (bodies[i].movement == 4) // Oscillation movement
+            {
+                float time = RunTime; // Use the elapsed time for smooth oscillation
+                float frequency = 1.0f; // Adjust this value to change the frequency of the oscillation
+                float amplitude = bodies[i].oscillationAmplitude; // Use the amplitude set for the body
+
+                // Calculate the new position using a sine function
+                bodies[i].pos.x = bodies[i].initialX + amplitude * sin(frequency * time);
+                bodies[i].pos.y = bodies[i].initialY; // Keep y constant for horizontal oscillation
+
+                // Debugging statements
+                printf("Body %d: pos=(%f, %f), initial=(%f, %f), amplitude=%f, frequency=%f, time=%f\n",
+                       bodies[i].id, bodies[i].pos.x, bodies[i].pos.y, bodies[i].initialX, bodies[i].initialY, amplitude, frequency, time);
             }
             else
             {
@@ -1663,14 +1687,6 @@ void nBody()
                 bodies[i].pos.z += bodies[i].vel.z * Dt;
             }
         }
-        // Print positions and velocities after update
-        // for (int i = 0; i < numBodies; i++)
-        // {
-        //     printf("After Update Body %d: pos=(%f, %f, %f), vel=(%f, %f, %f), force=(%f, %f, %f)\n",
-        //            i, bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z,
-        //            bodies[i].vel.x, bodies[i].vel.y, bodies[i].vel.z,
-        //            bodies[i].force.x, bodies[i].force.y, bodies[i].force.z);
-        // }
 
         DrawTimer++;
         if (DrawTimer == DrawRate)
@@ -1682,15 +1698,14 @@ void nBody()
         PrintTimer++;
         if (PrintTimer == PrintRate)
         {
-            terminalPrint();
+            // Print information if needed
             PrintTimer = 0;
         }
 
         RunTime += Dt;
         if (TotalRunTime < RunTime)
         {
-            printf("\n\n Done\n");
-            exit(0);
+            Pause = 1;
         }
     }
 }
@@ -1928,6 +1943,11 @@ void terminalPrint()
             printf("\033[0;32m");
             printf(BOLD_ON "Circular" BOLD_OFF);
         
+        }
+        else if (NewBodyMovement == 4)
+        {
+            printf("\033[0;32m");
+            printf(BOLD_ON "Oscillation" BOLD_OFF);
         }
         else
         {
