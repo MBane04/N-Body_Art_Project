@@ -122,7 +122,7 @@ void loadBackgroundImage(const char* filename);
 //Toggles
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
-int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
+int PreviousRunToggle = 0; // do you want to run a previous simulation or start a new one?
 string PreviousRunFile = "dotasaurus"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
@@ -583,7 +583,7 @@ void setup()
         setSimulationParameters();
         allocateMemory();
         setInitialConditions();
-        zeroOutSystem();
+        //zeroOutSystem();
     }
 
     DrawTimer = 0;
@@ -798,7 +798,7 @@ void KeyPressed(unsigned char key, int x, int y)
         }
         else if (BackgroundToggle == 2)
         {
-            loadBackgroundImage("../yellow_background4.png");
+            loadBackgroundImage("../godzilla_background7.png");
             drawPicture();
             terminalPrint();
         }
