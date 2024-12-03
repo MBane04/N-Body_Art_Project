@@ -1802,7 +1802,7 @@ void terminalPrint()
 	BOLD_OFF   "\e[m"
 	*/
 	
-	//system("clear");
+	system("clear");
 	
     printf("\n");
 	printf("\n S: Screenshot");
