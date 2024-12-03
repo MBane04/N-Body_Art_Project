@@ -123,7 +123,7 @@ void loadBackgroundImage(const char* filename);
 int NewBodyToggle = 0; // 0 if not currently adding a new body, 1 if currently adding a new body.
 bool isOrthogonal = true;
 int PreviousRunToggle = 1; // do you want to run a previous simulation or start a new one?
-string PreviousRunFile = "Outline(OLD)"; // The file name of the previous simulation you want to run.
+string PreviousRunFile = "dotasaurus"; // The file name of the previous simulation you want to run.
 int ColorToggle = 0; //15 possible values
 int HotkeyPrint = 0; // 0 if not currently printing hotkeys, 1 if currently printing hotkeys.
 int NewBodyMovement = 0; // 0 if random movement, 1 if circular movement
@@ -798,7 +798,7 @@ void KeyPressed(unsigned char key, int x, int y)
         }
         else if (BackgroundToggle == 2)
         {
-            loadBackgroundImage("../starry-night.jpg");
+            loadBackgroundImage("../yellow_background4.png");
             drawPicture();
             terminalPrint();
         }
@@ -1828,7 +1828,7 @@ void terminalPrint()
 	BOLD_OFF   "\e[m"
 	*/
 	
-	system("clear");
+	//system("clear");
 	
     printf("\n");
 	printf("\n S: Screenshot");
