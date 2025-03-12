@@ -1,11 +1,11 @@
 #ifndef HEADER_H
 #define HEADER_H
 
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string.h>
-#include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,12 +16,30 @@
 #include <cmath>
 #include <SOIL/SOIL.h>
 
+// OpenGL headers - GLAD must come BEFORE GLFW
+#include "../include/glad/glad.h"
+#include <GL/glu.h>
+#include <GLFW/glfw3.h>
+
+// ImGui headers - use quotes for local includes, not angle brackets
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
+
 using namespace std;
 
 // defines for terminal stuff.
 #define BOLD_ON  "\e[1m"
 #define BOLD_OFF   "\e[m"
 #define INITIAL_CAPACITY 100
+
+// GLUT compatibility defines to work with GLFW without changing a lot of code
+#define GLUT_LEFT_BUTTON 0
+#define GLUT_MIDDLE_BUTTON 1
+#define GLUT_RIGHT_BUTTON 2
+#define GLUT_DOWN 0
+#define GLUT_UP 1
 
 // Structure definitions
 typedef struct //stores information for each body
@@ -99,7 +117,7 @@ extern float currentOscillationAngle;
 extern float initialMouseX, initialMouseY;
 
 // Window settings
-extern int Window;
+extern GLFWwindow* window; //window is now an object, not an int
 extern int XWindowSize;
 extern int YWindowSize;
 extern double Near;
@@ -146,8 +164,11 @@ void addBodyAtPosition(float x, float y);
 void removeBodyAtPosition(float x, float y);
 void freeBodies();
 
+void cursor_position_adapter(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_adapter(GLFWwindow* window, int button, int action, int mods);
+void key_adapter(GLFWwindow* window, int key, int scancode, int action, int mods);
 void idle();
-void reshape(int w, int h);
+void reshape(GLFWwindow* window, int w, int h);
 void keyPressed(unsigned char key, int x, int y);
 void mousePassiveMotionCallback(int x, int y);
 void myMouse(int button, int state, int x, int y);
@@ -177,39 +198,5 @@ void setSimulationParameters();
 void allocateMemory();
 void setInitialConditions();
 void setup();
-
-
-
-
-
-
-
-
-
-
-
-// void setSimulationParameters();
-// void allocateMemory();
-// void setInitialConditions();
-// void drawPicture();
-// void nBody();
-// void errorCheck(const char*);
-// void terminalPrint();
-// void setup();
-// void movieOn();
-// void movieOff();
-// void screenShot();
-// float4 centerOfMass();
-// float4 linearVelocity();
-// void zeroOutSystem();
-// void addBody(Body newBody);
-// void loadBackgroundImage(const char* filename);
-// void readBodiesFromFile(const char* filename);
-// void writeBodiesToFile(const char* filename);
-// void removeBodyAtPosition(float x, float y);
-// void addBodyAtPosition(float x, float y);
-// void screenToWorld(int x, int y, float* worldX, float* worldY);
-// float4 getColor(const char* colorName);
-// void freeBodies();
 
 #endif // HEADER_H

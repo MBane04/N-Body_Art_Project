@@ -33,10 +33,15 @@ float4 getColor(const char* colorName) {
     return (float4){0.0, 0.0, 0.0, 1.0}; // Default value
 }
 
-void screenToWorld(int x, int y, float* worldX, float* worldY) {
-    *worldX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
-    *worldY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
-    //printf("Converted screen (%d, %d) to world (%f, %f)\n", x, y, *worldX, *worldY); // Debugging statement
+void screenToWorld(int x, int y, float* worldX, float* worldY)
+{
+    // Scale to match our new projection range of -3 to 3
+    float normalizedX = ((float)x / XWindowSize) * 2.0f - 1.0f;  // -1 to 1
+    float normalizedY = 1.0f - ((float)y / YWindowSize) * 2.0f;  // 1 to -1
+    
+    // Scale by 3.0 to match projection matrix
+    *worldX = normalizedX * 3.0f * ((float)XWindowSize / YWindowSize); // Apply aspect ratio
+    *worldY = normalizedY * 3.0f;
 }
 
 // Body Management functions

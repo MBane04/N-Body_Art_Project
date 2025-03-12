@@ -38,7 +38,8 @@ float currentOscillationAngle = 0.0;
 float initialMouseX = 0.0, initialMouseY = 0.0;
 
 // Window settings
-int Window = 0;
+
+GLFWwindow* window = NULL; //initialize to Null to start
 int XWindowSize = 3000;
 int YWindowSize = 1500;
 double Near = 0.2;

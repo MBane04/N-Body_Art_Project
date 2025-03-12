@@ -3,6 +3,9 @@
 /*
     this file contains the following functions:
 
+        void cursor_position_adapter(GLFWwindow* window, double xpos, double ypos);
+        void mouse_button_adapter(GLFWwindow* window, int button, int action, int mods);
+        void key_adapter(GLFWwindow* window, int key, int scancode, int action, int mods);
         void idle();
         void reshape(int w, int h);
         void keyPressed(unsigned char key, int x, int y);
@@ -16,6 +19,60 @@
         
 */
 
+//Adapts cursor from GLFW to GLUT so we don't have to change the code
+void cursor_position_adapter(GLFWwindow* window, double xpos, double ypos)
+{
+    mousePassiveMotionCallback((int)xpos, (int)ypos);
+}
+
+//Adapts mouse button from GLFW to GLUT so we don't have to change the code
+void mouse_button_adapter(GLFWwindow* window, int button, int action, int mods)
+{
+    int glutButton = (button == GLFW_MOUSE_BUTTON_LEFT) ? 0 : 
+                    (button == GLFW_MOUSE_BUTTON_MIDDLE) ? 1 : 2;
+    int glutState = (action == GLFW_PRESS) ? 0 : 1;
+    
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    
+    myMouse(glutButton, glutState, (int)xpos, (int)ypos);
+}
+
+//Adapts key press from GLFW to GLUT so we don't have to change the code
+//Adapts key press from GLFW to GLUT so we don't have to change the code
+void key_adapter(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    printf("Key pressed: %d, action: %d, mods: %d\n", key, action, mods);
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) 
+    {
+        // Handle letter keys (A-Z)
+        if (key >= GLFW_KEY_A && key <= GLFW_KEY_Z)
+        {
+            // Convert to the correct case based on shift modifier
+            unsigned char charKey;
+            if (mods & GLFW_MOD_SHIFT)
+                charKey = (unsigned char)key; // Keep uppercase (65-90)
+            else
+                charKey = (unsigned char)(key + 32); // Convert to lowercase (97-122)
+            
+            printf("Converted key: %c (%d)\n", charKey, charKey);
+            keyPressed(charKey, 0, 0);
+        }
+        // Handle other printable ASCII characters
+        else if (key >= 32 && key <= 126)
+        {
+            printf("ASCII key: %c (%d)\n", (unsigned char)key, key);
+            keyPressed((unsigned char)key, 0, 0);
+        }
+        else if (key == GLFW_KEY_ESCAPE)
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+        // Add special key handling here if needed
+        // else if (key == GLFW_KEY_UP) { ... }
+    }
+}
+
 void idle()
 {
     if (NewBodyToggle == 1)
@@ -28,13 +85,18 @@ void idle()
     }
 }
 
-void reshape(int w, int h)
+// Update reshape to work with GLFW
+void reshape(GLFWwindow* window, int w, int h)
 {
     // Prevent division by zero
     if (h == 0) h = 1;
 
+    // Update global window size variables
+    XWindowSize = w;
+    YWindowSize = h;
+
     // Calculate the aspect ratio of the window
-    float aspectRatio = (float)w / (float)h; //currently 3000/1500 = 2
+    float aspectRatio = (float)w / (float)h; 
 
     // Set the viewport to cover the new window
     glViewport(0, 0, (GLsizei)w, (GLsizei)h);
@@ -45,26 +107,26 @@ void reshape(int w, int h)
 
     // Adjust the projection matrix to maintain the aspect ratio of the bodies
     if (isOrthogonal) 
-	{
+    {
         if (aspectRatio >= 1.0f) 
-		{
+        {
             // Window is wider than it is tall
             glOrtho(-1.0 * aspectRatio, 1.0 * aspectRatio, -1.0, 1.0, Near, Far);
         } 
-		else 
-		{
+        else 
+        {
             // Window is taller than it is wide
             glOrtho(-1.0, 1.0, -1.0 / aspectRatio, 1.0 / aspectRatio, Near, Far);
         }
     } 
-	else 
-	{
+    else 
+    {
         if (aspectRatio >= 1.0f) 
-		{
+        {
             // Window is wider than it is tall
             glFrustum(-0.2 * aspectRatio, 0.2 * aspectRatio, -0.2, 0.2, Near, Far);
         } else 
-		{
+        {
             // Window is taller than it is wide
             glFrustum(-0.2, 0.2, -0.2 / aspectRatio, 0.2 / aspectRatio, Near, Far);
         }
@@ -90,9 +152,10 @@ void keyPressed(unsigned char key, int x, int y)
 		{
             fprintf(stderr, "Warning: Attempted to close a NULL file pointer\n");
         }
-        glutDestroyWindow(Window);
+        // Replace glutDestroyWindow(Window) with:
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
         printf("\nw Good Bye\n");
-        exit(0);
+        return; //return, not exit so glfw can clean up
 	}
 	// if(key == 'v') //not much need for this anymore
    	// {
@@ -344,29 +407,21 @@ void keyPressed(unsigned char key, int x, int y)
 
 void mousePassiveMotionCallback(int x, int y) 
 {
-
-
-    float windowAspect = (float)XWindowSize / (float)YWindowSize;
-    MouseX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
-    MouseY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
+    // Use proper conversion function instead of magic numbers
+    float worldX, worldY;
+    screenToWorld(x, y, &worldX, &worldY);
+    
+    MouseX = worldX;
+    MouseY = worldY;
     MouseZ = 0.0f;
+    
     if (IsDragging)
     {
         if(EraseMode)
-        {
             removeBodyAtPosition(MouseX, MouseY);
-        }
         else
-        {
             addBodyAtPosition(MouseX, MouseY);
-        }
     }
-
-
-    // Redraw the scene
-    //glutPostRedisplay();
-    // Print the converted coordinates for debugging
-    //printf("MouseX: %f, MouseY: %f\n", MouseX, MouseY);
 }
 
 // This is called when you push a mouse button.
@@ -396,11 +451,8 @@ void myMouse(int button, int state, int x, int y)
                     int index = numBodies; // Define and initialize index
 
                     // Convert window coordinates to OpenGL coordinates
-                    float windowAspect = (float)XWindowSize / (float)YWindowSize;
-                    MouseX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
-                    MouseY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
-                    MouseZ = 0.0f;
-                    MouseZ = 0.0f;
+                    screenToWorld(x, y, &MouseX, &MouseY);
+                    MouseZ = 0.0f + DrawLayer/100.0f; // Keep the Z offset for drawing layers
 
                     // Print the converted coordinates for debugging
                     printf("MouseX: %f, MouseY: %f, MouseZ: %f\n", MouseX, MouseY, MouseZ);
@@ -514,10 +566,8 @@ void myMouse(int button, int state, int x, int y)
                 if(IsDragging == false)
                 {
                     IsDragging = true;
-                    float windowAspect = (float)XWindowSize / (float)YWindowSize;
-                    MouseX = (5.76 * x / XWindowSize) - 1.84f; // Map x to (-1.84, 1.84)
-                    MouseY = -(2.9f * y / YWindowSize) + 1.0f;   // Map y to (-1, 1)
-                    MouseZ = 0.0f;
+                    screenToWorld(x, y, &MouseX, &MouseY);
+                    MouseZ = 0.0f + DrawLayer/100.0f; // Keep the Z offset for drawing layers
                 }
                 else
                 {

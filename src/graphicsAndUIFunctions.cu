@@ -8,6 +8,71 @@
 */
 
 #include "./header.h"
+
+
+#include "./header.h"
+#include <vector>
+
+// Render a sphere with given radius, latitude segments, and longitude segments
+void renderSphere(float radius, int slices, int stacks) //replaces glutSolidSphere
+{
+    // Generate sphere vertices
+    std::vector<float> vertices;
+    std::vector<float> normals;
+    std::vector<unsigned int> indices;
+    
+    for (int lat = 0; lat <= slices; lat++) {
+        float theta = lat * M_PI / slices;
+        float sinTheta = sin(theta);
+        float cosTheta = cos(theta);
+        
+        for (int lon = 0; lon <= stacks; lon++) {
+            float phi = lon * 2 * M_PI / stacks;
+            float sinPhi = sin(phi);
+            float cosPhi = cos(phi);
+            
+            float x = cosPhi * sinTheta;
+            float y = cosTheta;
+            float z = sinPhi * sinTheta;
+            
+            normals.push_back(x);
+            normals.push_back(y);
+            normals.push_back(z);
+            
+            vertices.push_back(radius * x);
+            vertices.push_back(radius * y);
+            vertices.push_back(radius * z);
+        }
+    }
+    
+    // Generate indices
+    for (int lat = 0; lat < slices; lat++) 
+    {
+        for (int lon = 0; lon < stacks; lon++) 
+        {
+            int first = (lat * (stacks + 1)) + lon;
+            int second = first + stacks + 1;
+            
+            // Draw a quad for each segment
+            glBegin(GL_QUADS);
+            
+            glNormal3f(normals[first * 3], normals[first * 3 + 1], normals[first * 3 + 2]);
+            glVertex3f(vertices[first * 3], vertices[first * 3 + 1], vertices[first * 3 + 2]);
+            
+            glNormal3f(normals[first * 3 + 3], normals[first * 3 + 4], normals[first * 3 + 5]);
+            glVertex3f(vertices[first * 3 + 3], vertices[first * 3 + 4], vertices[first * 3 + 5]);
+            
+            glNormal3f(normals[second * 3 + 3], normals[second * 3 + 4], normals[second * 3 + 5]);
+            glVertex3f(vertices[second * 3 + 3], vertices[second * 3 + 4], vertices[second * 3 + 5]);
+            
+            glNormal3f(normals[second * 3], normals[second * 3 + 1], normals[second * 3 + 2]);
+            glVertex3f(vertices[second * 3], vertices[second * 3 + 1], vertices[second * 3 + 2]);
+            
+            glEnd();
+        }
+    }
+}
+
 void drawPicture()
 {
     if (Trace == 0)
@@ -21,10 +86,7 @@ void drawPicture()
         renderBackground();
     }
 
-    if (GridOn)
-    {
-        drawGrid(0.1f, 19); // Adjust spacing and number of lines as needed
-    }
+    if (GridOn) drawGrid(0.5f, 50);  // Wider grid spacing, more grid lines
 
     if (NewBodyToggle == 1)
     {
@@ -133,7 +195,7 @@ void drawPicture()
         }
         glPushMatrix();
         glTranslatef(MouseX, MouseY, MouseZ + DrawLayer / 100.0f);
-        glutSolidSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
+        renderSphere(newBodyRadius * DiameterOfBody / 2.0, 20, 20);
         glPopMatrix();
 
         // Draw the oscillation path line
@@ -158,11 +220,12 @@ void drawPicture()
         glColor3d(bodies[i].color.x, bodies[i].color.y, bodies[i].color.z);
         glPushMatrix();
         glTranslatef(bodies[i].pos.x, bodies[i].pos.y, bodies[i].pos.z);
-        glutSolidSphere(bodies[i].radius, 20, 20);
+        //glutSolidSphere(bodies[i].radius, 20, 20);, args are radius, slices (vertical) , stacks (horizontal)
+        renderSphere(bodies[i].radius, 20, 20);
         glPopMatrix();
     }
 
-    glutSwapBuffers();
+    glfwSwapBuffers(window); //changed from glutSwapBuffers();
 
     if (MovieOn == 1)
     {
@@ -203,7 +266,6 @@ void display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     renderBackground();
 	drawPicture();
-	glutSwapBuffers();
 }
 
 void renderBackground()

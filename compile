@@ -5,6 +5,7 @@
 
 cd src
 
-nvcc nBodyArt.cu globals.cu bodyFunctions.cu fileIO.cu setupFunctions.cu graphicsandUIFunctions.cu forceFunctions.cu callBackFunctions.cu -o nBodyArt -lglut -lm -lGLU -lGL -lSOIL
+nvcc nBodyArt.cu globals.cu bodyFunctions.cu fileIO.cu setupFunctions.cu graphicsandUIFunctions.cu forceFunctions.cu callBackFunctions.cu glad.c -o nBodyArt \
+     -lglfw -lGL -lGLU -lSOIL -lm -lpthread -ldl -lX11 -lXrandr -lXinerama -lXcursor -lXi
 
 mv nBodyArt ../Executables

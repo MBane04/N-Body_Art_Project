@@ -1,0 +1,4 @@
+when resized, the mouse coordinates change, it basically zooms in rather than resizing the simulation with it
+
+background loading currently doesn't work
+- I think this is just due to filepath errors, but will look into it after a GUI is built
