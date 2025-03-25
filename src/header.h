@@ -193,6 +193,7 @@ void drawGrid(float spacing, int numLines);
 void display();
 void renderBackground();
 void terminalPrint();
+void createGUI();
 
 void setSimulationParameters();
 void allocateMemory();

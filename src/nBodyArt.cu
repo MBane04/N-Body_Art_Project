@@ -139,25 +139,70 @@ int main(int argc, char** argv)
     glEnable(GL_DEPTH_TEST);
 
 
+    //*****************************************ImGUI stuff here********************************
+    // Initialize ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable keyboard controls
+
+    // Setup ImGui style
+    ImGui::StyleColorsDark();  // Choose a style (Light, Dark, or Classic)
+    ImGuiStyle& style = ImGui::GetStyle(); // Get the current style
+    style.Colors[ImGuiCol_WindowBg].w = 1.0f;  // Set window background color
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);  // Setup Platform bindings
+    ImGui_ImplOpenGL3_Init("#version 130");      // Setup Renderer bindings
+
+    // Load a font
+    io.Fonts->AddFontDefault();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
     //********Back to different stuff here
 
-    //main Loop
-    while (!glfwWindowShouldClose(window)) // Loop until the user closes the window
+    // Main loop
+    while (!glfwWindowShouldClose(window))
     {
-
-        glfwPollEvents(); // Poll for and process events
-
-        idle(); // Update the simulation
-
-        // Render the simulation
-        display();       
+        // Poll events
+        glfwPollEvents();
         
+        // Start the ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+    
+        // Update simulation state first
+        idle();
+        
+        // Let display() handle the single clear
+        display();
+        
+        // Create ImGui UI here - after scene rendering
+        createGUI();
+        
+        // Render ImGui
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
+        // Swap buffers ONCE at the end
+        glfwSwapBuffers(window);
     }
     
     
     // Cleanup resources
     movieOff();
     freeBodies();
+
+    //shutdown ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    // Terminate GLFW
     glfwDestroyWindow(window);
     glfwTerminate();
 

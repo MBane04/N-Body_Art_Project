@@ -5,6 +5,7 @@
         void display();
         void renderBackground();
         void terminalPrint();
+        void createGUI();
 */
 
 #include "./header.h"
@@ -225,7 +226,7 @@ void drawPicture()
         glPopMatrix();
     }
 
-    glfwSwapBuffers(window); //changed from glutSwapBuffers();
+    //glfwSwapBuffers(window); //changed from glutSwapBuffers(); Removed cause of imGUI flickering
 
     if (MovieOn == 1)
     {
@@ -594,4 +595,118 @@ void terminalPrint()
 
     }
     printf("\n");
+}
+
+void createGUI()
+{
+    //needed because i should've used bools instead of ints for flags, glad we did all that work before on the heart code now aren't you?
+
+    //**************ALL OFF THIS JUST CONVERTS INTS TO BOOLS AND VICE VERSA**************
+    static auto intToBool = [](int& intVal) -> bool { return intVal != 0; };
+    static auto boolToInt = [](bool val, int& intVal) { intVal = val ? 1 : 0; };
+    
+    // Temporary bool variables for ImGui interactions
+    static bool pauseBool = Pause != 0;
+    static bool traceBool = Trace != 0;
+    static bool gridOnBool = GridOn;
+    static bool backgroundBool = BackgroundToggle != 0;
+    static bool newBodyBool = NewBodyToggle != 0;
+    static bool newBodySolidBool = NewBodySolid;
+    static bool eraseModeBool = EraseMode;
+    static bool movieFlagBool = MovieFlag != 0;
+    
+    // Update bools from ints at the beginning of each frame
+    pauseBool = intToBool(Pause);
+    traceBool = intToBool(Trace);
+    gridOnBool = GridOn;
+    backgroundBool = intToBool(BackgroundToggle); 
+    newBodyBool = intToBool(NewBodyToggle);
+    newBodySolidBool = NewBodySolid;
+    eraseModeBool = EraseMode;
+    movieFlagBool = intToBool(MovieFlag);
+
+    //******************OK NOW WE CAN ACTUALLY MAKE THE GUI******************
+    // Create a window
+    ImGui::Begin("N-Body Controls");
+    
+    // Simulation controls
+    if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        //all of these if statements aren't necessary and if we did it right befor it would look like this:
+        //ImGui::Checkbox("Pause", &Pause);
+
+        // Use bool variables with ImGui
+        if (ImGui::Checkbox("Pause", &pauseBool)) 
+            boolToInt(pauseBool, Pause);
+            
+        if (ImGui::Checkbox("Trace", &traceBool))
+            boolToInt(traceBool, Trace);
+            
+        if (ImGui::Checkbox("Show Grid", &gridOnBool))
+            GridOn = gridOnBool;
+            
+        if (ImGui::Checkbox("Show Background", &backgroundBool))
+            boolToInt(backgroundBool, BackgroundToggle);
+        
+        ImGui::Separator();
+        
+        if (ImGui::Button("Screenshot"))
+            screenShot();
+            
+        ImGui::SameLine();
+        
+        if (ImGui::Button(movieFlagBool ? "Stop Recording" : "Start Recording")) {
+            movieFlagBool = !movieFlagBool;
+            boolToInt(movieFlagBool, MovieFlag);
+            if (MovieFlag) movieOn(); else movieOff();
+        }
+    }
+ 
+    
+    // Body creation controls
+    if (ImGui::CollapsingHeader("Body Creation", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        if (ImGui::Checkbox("Add Body Mode", &newBodyBool))
+        boolToInt(newBodyBool, NewBodyToggle);
+        
+        if (NewBodyToggle) // Only show body creation controls when in add body mode
+        {
+            if (ImGui::Checkbox("Solid Body", &newBodySolidBool))
+            NewBodySolid = newBodySolidBool; //is the new body solid?
+            if (ImGui::Checkbox("Erase Mode", &eraseModeBool))
+            EraseMode = eraseModeBool; //are we in erase mode?
+            
+            ImGui::SliderFloat("Radius", &newBodyRadius, 0.1f, 5.0f); //radius of the new body, set on a slider from 0.1 to 5.0
+            ImGui::SliderInt("Layer", &DrawLayer, -10, 10); //layer of the new body, set on a slider from -10 to 10
+            
+            const char* movementTypes[] = { "Random", "Still", "Sinusoidal", "Circular", "Oscillation" }; //movement types, array of strings for the dropdown
+            ImGui::Combo("Movement Type", &NewBodyMovement, movementTypes, IM_ARRAYSIZE(movementTypes)); //dropdown for the movement types, args are the label, the int that holds the value, the array of strings, and the size of the array
+            
+            if (NewBodyMovement == 4) // Oscillation
+            {
+                ImGui::SliderFloat("Oscillation Angle", &currentOscillationAngle, 0.0f, 2*3.14159f);
+                ImGui::SliderFloat("Oscillation Amplitude", &currentOscillationAmplitude, 0.1f, 2.0f);
+            }
+            
+            // Add a color picker
+            static float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+            ImGui::ColorEdit3("Body Color", color); //color picker, pretty cool huh?
+            
+            // Convert ImGui color to your application's color format when needed
+            if (ImGui::Button("Apply Color"))
+            {
+                bodies[numBodies].color = make_float4(color[0], color[1], color[2], color[3]);
+            }
+        }
+    }
+    
+    // Display stats
+    if (ImGui::CollapsingHeader("Statistics"))
+    {
+        ImGui::Text("Bodies: %d", numBodies); //display the number of bodies
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate); //display the framerate
+        ImGui::Text("Mouse Position: (%.2f, %.2f)", MouseX, MouseY); //display the mouse coords
+    }
+    
+    ImGui::End(); //end the window
 }
